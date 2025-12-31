@@ -73,7 +73,75 @@ class Program
             databaseService.InsertConstellations(constellations);
             Console.WriteLine();
 
-            // Step 7: Display summary statistics
+            // Step 7: Generate render database
+            Console.WriteLine("=== Generating Render Database ===");
+            var renderDbPath = Path.Combine(sdeFolder, "render.db");
+            var renderDbService = new RenderDatabaseService(renderDbPath);
+            var coordinateScaler = new CoordinateScaler();
+            var linkProcessor = new LinkProcessor();
+
+            // Calculate bounding boxes
+            Console.WriteLine("Calculating bounding boxes...");
+            var systemBounds = coordinateScaler.CalculateBoundingBox(solarSystems);
+            var regionBounds = coordinateScaler.CalculateBoundingBox(regions);
+            var constellationBounds = coordinateScaler.CalculateBoundingBox(constellations);
+            Console.WriteLine($"System bounds: X[{systemBounds.MinX:F2}, {systemBounds.MaxX:F2}], Y[{systemBounds.MinY:F2}, {systemBounds.MaxY:F2}], Z[{systemBounds.MinZ:F2}, {systemBounds.MaxZ:F2}]");
+            Console.WriteLine();
+
+            // Scale coordinates for solar systems
+            Console.WriteLine("Scaling solar system coordinates...");
+            var systemRenderCoords = new Dictionary<int, string>();
+            foreach (var system in solarSystems)
+            {
+                var coords = coordinateScaler.ScaleCoordinates(system.PositionX, system.PositionY, system.PositionZ, systemBounds);
+                systemRenderCoords[system.Id] = coords;
+            }
+
+            // Scale coordinates for regions
+            Console.WriteLine("Scaling region coordinates...");
+            var regionRenderCoords = new Dictionary<int, string>();
+            foreach (var region in regions)
+            {
+                var coords = coordinateScaler.ScaleCoordinates(region.PositionX, region.PositionY, region.PositionZ, regionBounds);
+                regionRenderCoords[region.Id] = coords;
+            }
+
+            // Scale coordinates for constellations
+            Console.WriteLine("Scaling constellation coordinates...");
+            var constellationRenderCoords = new Dictionary<int, string>();
+            foreach (var constellation in constellations)
+            {
+                var coords = coordinateScaler.ScaleCoordinates(constellation.PositionX, constellation.PositionY, constellation.PositionZ, constellationBounds);
+                constellationRenderCoords[constellation.Id] = coords;
+            }
+            Console.WriteLine();
+
+            // Process stargate links
+            Console.WriteLine("Processing stargate links...");
+            var systemLookup = solarSystems.ToDictionary(s => s.Id);
+            var stargateLinks = linkProcessor.ProcessStargateLinks(stargates, systemLookup);
+            Console.WriteLine($"Generated {stargateLinks.Count} unique stargate links");
+            Console.WriteLine($"  Regular: {stargateLinks.Count(l => l.LinkType == "regular")}");
+            Console.WriteLine($"  Constellation: {stargateLinks.Count(l => l.LinkType == "constellation")}");
+            Console.WriteLine($"  Regional: {stargateLinks.Count(l => l.LinkType == "regional")}");
+            Console.WriteLine();
+
+            // Calculate constellation links
+            Console.WriteLine("Calculating constellation links...");
+            var constellationLinks = linkProcessor.CalculateConstellationLinks(stargateLinks, systemLookup);
+            Console.WriteLine($"Generated {constellationLinks.Count} unique constellation links");
+            Console.WriteLine();
+
+            // Create render database
+            renderDbService.InitializeDatabase();
+            renderDbService.InsertSolarSystems(solarSystems, systemRenderCoords);
+            renderDbService.InsertRegions(regions, regionRenderCoords);
+            renderDbService.InsertConstellations(constellations, constellationRenderCoords);
+            renderDbService.InsertStargateLinks(stargateLinks);
+            renderDbService.InsertConstellationLinks(constellationLinks);
+            Console.WriteLine();
+
+            // Step 8: Display summary statistics
             Console.WriteLine("=== Processing Complete ===");
             Console.WriteLine($"Build Number: {buildNumber}");
             Console.WriteLine($"Total Solar Systems: {solarSystems.Count}");
@@ -84,7 +152,8 @@ class Program
             Console.WriteLine($"Regions with Names: {regions.Count(r => !string.IsNullOrEmpty(r.Name))}");
             Console.WriteLine($"Total Constellations: {constellations.Count}");
             Console.WriteLine($"Constellations with Names: {constellations.Count(c => !string.IsNullOrEmpty(c.Name))}");
-            Console.WriteLine($"Database Location: {dbPath}");
+            Console.WriteLine($"Universe Database Location: {dbPath}");
+            Console.WriteLine($"Render Database Location: {renderDbPath}");
         }
         catch (Exception ex)
         {
