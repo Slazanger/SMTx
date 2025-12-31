@@ -302,4 +302,76 @@ public class MainViewModel : ViewModelBase
 
         return (screenX, screenY, depth);
     }
+
+    // Optimized batch projection method that caches trigonometric values
+    // This is much faster when projecting many systems at once
+    public List<(RenderSolarSystem system, double screenX, double screenY, double depth)> ProjectSystemsBatch(
+        IEnumerable<RenderSolarSystem> systems, double canvasWidth, double canvasHeight)
+    {
+        // Pre-calculate trigonometric values once (expensive operations)
+        var cosZ = Math.Cos(-_cameraRotationZ);
+        var sinZ = Math.Sin(-_cameraRotationZ);
+        var cosY = Math.Cos(-_cameraRotationY);
+        var sinY = Math.Sin(-_cameraRotationY);
+        var cosX = Math.Cos(-_cameraRotationX);
+        var sinX = Math.Sin(-_cameraRotationX);
+        
+        // Pre-calculate scale factor
+        var worldViewSize = _cameraDistance;
+        var scale = Math.Min(canvasWidth, canvasHeight) / worldViewSize;
+        var halfWidth = canvasWidth / 2.0;
+        var halfHeight = canvasHeight / 2.0;
+        
+        var results = new List<(RenderSolarSystem, double, double, double)>();
+        
+        foreach (var system in systems)
+        {
+            // Translate to camera center
+            var x = system.WorldX - _cameraCenterX;
+            var y = system.WorldY - _cameraCenterY;
+            var z = system.WorldZ - _cameraCenterZ;
+
+            // Apply rotations using pre-calculated values
+            // Rotation around Z axis
+            var tempX = x * cosZ - y * sinZ;
+            var tempY = x * sinZ + y * cosZ;
+            x = tempX;
+            y = tempY;
+
+            // Rotation around Y axis
+            tempX = x * cosY + z * sinY;
+            var tempZ = -x * sinY + z * cosY;
+            x = tempX;
+            z = tempZ;
+
+            // Rotation around X axis
+            tempY = y * cosX - z * sinX;
+            tempZ = y * sinX + z * cosX;
+            y = tempY;
+            z = tempZ;
+
+            // Translate camera back along Z axis
+            z = z + _cameraDistance;
+
+            // Perspective projection
+            if (z <= 0.1) // Behind camera, skip
+            {
+                continue;
+            }
+
+            // Perspective divide
+            var perspectiveScale = _cameraDistance / z;
+            var projectedX = x * perspectiveScale;
+            var projectedY = y * perspectiveScale;
+            var depth = z;
+
+            // Convert to screen coordinates
+            var screenX = projectedX * scale + halfWidth;
+            var screenY = projectedY * scale + halfHeight;
+
+            results.Add((system, screenX, screenY, depth));
+        }
+        
+        return results;
+    }
 }

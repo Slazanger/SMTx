@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
 using Avalonia;
@@ -18,6 +19,16 @@ public partial class MapCanvas : UserControl
     private Point _lastMousePosition;
     private bool _isDragging = false;
     private IPointer? _capturedPointer;
+    
+    // Performance optimization: Cache pens and typeface
+    private static readonly Pen RegularLinkPen = new Pen(Brushes.Gray, 1.0);
+    private static readonly Pen ConstellationLinkPen = new Pen(Brushes.Cyan, 1.0);
+    private static readonly Pen RegionalLinkPen = new Pen(Brushes.Red, 1.0);
+    private static readonly Typeface DefaultTypeface = new Typeface("Arial");
+    
+    // Throttle mouse updates to reduce redraw frequency
+    private DateTime _lastMouseUpdate = DateTime.MinValue;
+    private const int MouseUpdateThrottleMs = 16; // ~60 FPS max
 
     public MapCanvas()
     {
@@ -125,7 +136,14 @@ public partial class MapCanvas : UserControl
             _viewModel.CameraRotationX = Math.Max(-Math.PI / 2.0 + 0.1, Math.Min(Math.PI / 2.0 - 0.1, _viewModel.CameraRotationX));
 
             _lastMousePosition = currentPosition;
-            InvalidateVisual();
+            
+            // Throttle redraws to improve performance
+            var now = DateTime.UtcNow;
+            if ((now - _lastMouseUpdate).TotalMilliseconds >= MouseUpdateThrottleMs)
+            {
+                _lastMouseUpdate = now;
+                InvalidateVisual();
+            }
         }
     }
 
@@ -173,23 +191,22 @@ public partial class MapCanvas : UserControl
 
         var pixelSize = new PixelSize((int)Math.Ceiling(bounds.Width), (int)Math.Ceiling(bounds.Height));
 
-        // Project all 3D points to 2D and sort by depth
-        var allProjected = _viewModel.SolarSystems
-            .Select(system =>
+        // Project all 3D points to 2D using optimized batch method
+        // This caches trigonometric values and is much faster
+        var projectedResults = _viewModel.ProjectSystemsBatch(
+            _viewModel.SolarSystems, 
+            pixelSize.Width, 
+            pixelSize.Height);
+        
+        var allProjected = projectedResults
+            .Where(p => !double.IsNaN(p.screenX) && !double.IsNaN(p.screenY))
+            .Select(p => new
             {
-                var (screenX, screenY, depth) = _viewModel.Project3DTo2D(
-                    system.WorldX, system.WorldY, system.WorldZ,
-                    pixelSize.Width, pixelSize.Height);
-                
-                return new
-                {
-                    System = system,
-                    ScreenX = screenX,
-                    ScreenY = screenY,
-                    Depth = depth
-                };
+                System = p.system,
+                ScreenX = p.screenX,
+                ScreenY = p.screenY,
+                Depth = p.depth
             })
-            .Where(p => !double.IsNaN(p.ScreenX) && !double.IsNaN(p.ScreenY))
             .ToList();
 
         var systemLookup = allProjected.ToDictionary(p => p.System.Id);
@@ -222,27 +239,22 @@ public partial class MapCanvas : UserControl
                 if (!sourceVisible && !destVisible)
                     continue;
 
-                // Select color based on link type
-                IBrush linkBrush;
-                double strokeWidth;
+                // Select pen based on link type (use cached pens for performance)
+                Pen pen;
                 switch (link.LinkType.ToLower())
                 {
                     case "regional":
-                        linkBrush = Brushes.Red;
-                        strokeWidth = 2.0;
+                        pen = RegionalLinkPen;
                         break;
                     case "constellation":
-                        linkBrush = Brushes.Cyan;
-                        strokeWidth = 1.5;
+                        pen = ConstellationLinkPen;
                         break;
                     case "regular":
                     default:
-                        linkBrush = Brushes.Gray;
-                        strokeWidth = 1.0;
+                        pen = RegularLinkPen;
                         break;
                 }
 
-                var pen = new Pen(linkBrush, strokeWidth);
                 context.DrawLine(pen, 
                     new Point(source.ScreenX, source.ScreenY),
                     new Point(dest.ScreenX, dest.ScreenY));
@@ -256,6 +268,14 @@ public partial class MapCanvas : UserControl
                        p.ScreenY >= -systemScreenMargin && p.ScreenY <= pixelSize.Height + systemScreenMargin)
             .OrderBy(p => p.Depth)
             .ToList();
+
+        // Performance: Limit text rendering to closest systems only
+        // Text rendering is expensive, so we only render labels for the closest N systems
+        const int maxTextLabels = 150;
+        var systemsWithText = projectedSystems
+            .Where(p => !string.IsNullOrEmpty(p.System.Name))
+            .Take(maxTextLabels)
+            .ToHashSet();
 
         // Draw each solar system
         foreach (var projected in projectedSystems)
@@ -273,15 +293,22 @@ public partial class MapCanvas : UserControl
             var center = new Point(projected.ScreenX, projected.ScreenY);
             context.DrawEllipse(Brushes.White, null, center, radius, radius);
             
-            // Draw system name below the circle
-            if (!string.IsNullOrEmpty(projected.System.Name) && radius > 3.0)
+            // Draw system name below the circle (only if large enough to be readable)
+            // Performance: Only render text for systems that are close enough (radius > 5)
+            // and only render a limited number of text labels to avoid overload
+            if (systemsWithText.Contains(projected) && radius > 5.0)
             {
-                var fontSize = Math.Max(10.0, 14.0 * depthFactor);
+                // Only render text for the closest systems to avoid performance issues
+                // This is approximate - we're already sorted by depth, so we can limit count
+                var fontSize = Math.Max(10.0, Math.Min(14.0, 14.0 * depthFactor));
+                
+                // Create FormattedText (unavoidable, but we limit when this happens)
+                // Name is guaranteed non-null because systemsWithText only contains systems with names
                 var formattedText = new FormattedText(
-                    projected.System.Name,
+                    projected.System.Name!,
                     System.Globalization.CultureInfo.CurrentCulture,
                     FlowDirection.LeftToRight,
-                    new Typeface("Arial"),
+                    DefaultTypeface,
                     fontSize,
                     Brushes.White);
                 
