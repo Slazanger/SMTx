@@ -38,6 +38,7 @@ class Program
             var sdeDownloadService = new SdeDownloadService(dataExportPath);
             var jsonlParser = new JsonlParser();
             var stargateParser = new StargateParser();
+            var regionParser = new RegionParser();
 
             // Step 1: Get/download latest SDE
             var sdeFolder = await sdeDownloadService.EnsureSdeDownloadedAsync();
@@ -51,7 +52,11 @@ class Program
             var stargates = await stargateParser.ParseStargatesAsync(sdeFolder);
             Console.WriteLine();
 
-            // Step 4: Store results in database
+            // Step 4: Process mapRegions.jsonl to extract region data
+            var regions = await regionParser.ParseRegionsAsync(sdeFolder);
+            Console.WriteLine();
+
+            // Step 5: Store results in database
             var buildNumber = Path.GetFileName(sdeFolder);
             var dbPath = Path.Combine(sdeFolder, "universe.db");
             var databaseService = new DatabaseService(dbPath);
@@ -59,15 +64,18 @@ class Program
             databaseService.InitializeDatabase();
             databaseService.InsertSolarSystems(solarSystems);
             databaseService.InsertStargates(stargates);
+            databaseService.InsertRegions(regions);
             Console.WriteLine();
 
-            // Step 5: Display summary statistics
+            // Step 6: Display summary statistics
             Console.WriteLine("=== Processing Complete ===");
             Console.WriteLine($"Build Number: {buildNumber}");
             Console.WriteLine($"Total Solar Systems: {solarSystems.Count}");
             Console.WriteLine($"Systems with Names: {solarSystems.Count(s => !string.IsNullOrEmpty(s.Name))}");
             Console.WriteLine($"Total Stargates: {stargates.Count}");
             Console.WriteLine($"Unique Connections: {stargates.Select(s => new { s.SourceSystemId, s.DestinationSystemId }).Distinct().Count()}");
+            Console.WriteLine($"Total Regions: {regions.Count}");
+            Console.WriteLine($"Regions with Names: {regions.Count(r => !string.IsNullOrEmpty(r.Name))}");
             Console.WriteLine($"Database Location: {dbPath}");
         }
         catch (Exception ex)

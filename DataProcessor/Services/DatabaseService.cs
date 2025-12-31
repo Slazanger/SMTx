@@ -62,6 +62,19 @@ public class DatabaseService
         using var command2 = new SQLiteCommand(createStargatesTableSql, connection);
         command2.ExecuteNonQuery();
 
+        var createRegionsTableSql = @"
+            CREATE TABLE IF NOT EXISTS Regions (
+                Id INTEGER PRIMARY KEY,
+                Name TEXT,
+                FactionId INTEGER,
+                PositionX REAL,
+                PositionY REAL,
+                PositionZ REAL
+            )";
+
+        using var command3 = new SQLiteCommand(createRegionsTableSql, connection);
+        command3.ExecuteNonQuery();
+
         // Clear existing data if re-running
         var clearStargatesSql = "DELETE FROM Stargates";
         using var clearStargatesCommand = new SQLiteCommand(clearStargatesSql, connection);
@@ -70,6 +83,10 @@ public class DatabaseService
         var clearSolarSystemsSql = "DELETE FROM SolarSystems";
         using var clearSolarSystemsCommand = new SQLiteCommand(clearSolarSystemsSql, connection);
         clearSolarSystemsCommand.ExecuteNonQuery();
+
+        var clearRegionsSql = "DELETE FROM Regions";
+        using var clearRegionsCommand = new SQLiteCommand(clearRegionsSql, connection);
+        clearRegionsCommand.ExecuteNonQuery();
 
         Console.WriteLine($"Database initialized at {_dbPath}");
     }
@@ -178,6 +195,52 @@ public class DatabaseService
 
         transaction.Commit();
         Console.WriteLine($"Successfully inserted {inserted} stargates into database.");
+    }
+
+    public void InsertRegions(List<Region> regions)
+    {
+        using var connection = new SQLiteConnection($"Data Source={_dbPath};Version=3;");
+        connection.Open();
+
+        using var transaction = connection.BeginTransaction();
+
+        var insertSql = @"
+            INSERT INTO Regions (
+                Id, Name, FactionId, PositionX, PositionY, PositionZ
+            ) VALUES (
+                @Id, @Name, @FactionId, @PositionX, @PositionY, @PositionZ
+            )";
+
+        using var command = new SQLiteCommand(insertSql, connection, transaction);
+        
+        command.Parameters.Add(new SQLiteParameter("@Id"));
+        command.Parameters.Add(new SQLiteParameter("@Name"));
+        command.Parameters.Add(new SQLiteParameter("@FactionId"));
+        command.Parameters.Add(new SQLiteParameter("@PositionX"));
+        command.Parameters.Add(new SQLiteParameter("@PositionY"));
+        command.Parameters.Add(new SQLiteParameter("@PositionZ"));
+
+        var inserted = 0;
+        foreach (var region in regions)
+        {
+            command.Parameters["@Id"].Value = region.Id;
+            command.Parameters["@Name"].Value = (object?)region.Name ?? DBNull.Value;
+            command.Parameters["@FactionId"].Value = (object?)region.FactionId ?? DBNull.Value;
+            command.Parameters["@PositionX"].Value = (object?)region.PositionX ?? DBNull.Value;
+            command.Parameters["@PositionY"].Value = (object?)region.PositionY ?? DBNull.Value;
+            command.Parameters["@PositionZ"].Value = (object?)region.PositionZ ?? DBNull.Value;
+
+            command.ExecuteNonQuery();
+            inserted++;
+
+            if (inserted % 50 == 0)
+            {
+                Console.WriteLine($"  Inserted {inserted} regions...");
+            }
+        }
+
+        transaction.Commit();
+        Console.WriteLine($"Successfully inserted {inserted} regions into database.");
     }
 }
 
