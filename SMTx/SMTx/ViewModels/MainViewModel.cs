@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Windows.Input;
 using ReactiveUI;
 using SMTx.Models;
 using SMTx.Services;
@@ -28,9 +29,12 @@ public class MainViewModel : ViewModelBase
     public double CameraCenterZ => _cameraCenterZ;
     private double _fieldOfView = Math.PI / 4.0; // 45 degrees
 
+    public ICommand ResetViewCommand { get; }
+
     public MainViewModel()
     {
         LoadSolarSystems();
+        ResetViewCommand = ReactiveCommand.Create(ResetView);
     }
 
     public ObservableCollection<RenderSolarSystem> SolarSystems
@@ -159,10 +163,15 @@ public class MainViewModel : ViewModelBase
         System.Diagnostics.Debug.WriteLine($"Bounding box: X=[{minX:F2}, {maxX:F2}], Y=[{minY:F2}, {maxY:F2}], Z=[{minZ:F2}, {maxZ:F2}]");
         System.Diagnostics.Debug.WriteLine($"Max dimension: {maxDimension:F2}, Camera distance: {CameraDistance:F2}");
 
-        // Start with a nice isometric view (45 degrees rotation)
-        CameraRotationX = Math.PI / 6.0; // 30 degrees pitch
-        CameraRotationY = Math.PI / 4.0; // 45 degrees yaw
-        CameraRotationZ = 0.0;
+        // Start with a top-down view (looking straight down, north at top)
+        CameraRotationX = -Math.PI / 2.0; // -90 degrees pitch (look straight down)
+        CameraRotationY = 0.0; // No yaw (north at top)
+        CameraRotationZ = 0.0; // No roll
+    }
+
+    public void ResetView()
+    {
+        CalculateInitialCamera();
     }
 
     public void UpdateCanvasSize(double width, double height)

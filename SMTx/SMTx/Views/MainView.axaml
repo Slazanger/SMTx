@@ -13,5 +13,28 @@
     <vm:MainViewModel />
   </Design.DataContext>
 
-  <views:MapCanvas />
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+
+    <!-- Toolbar -->
+    <Border Grid.Row="0" Background="#1E1E1E" BorderBrush="#3E3E3E" BorderThickness="0,0,0,1">
+      <StackPanel Orientation="Horizontal" Margin="10,5">
+        <Button Content="Reset View" Command="{Binding ResetViewCommand}" Margin="0,0,10,0" Padding="10,5" />
+      </StackPanel>
+    </Border>
+
+    <!-- Map Canvas -->
+    <Grid Grid.Row="1">
+      <views:MapCanvas />
+      
+      <!-- Compass overlay (top-right corner) -->
+      <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10" 
+              Background="#80000000" CornerRadius="5" Padding="5">
+        <views:Compass Width="120" Height="120" DataContext="{Binding}" />
+      </Border>
+    </Grid>
+  </Grid>
 </UserControl>
