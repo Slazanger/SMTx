@@ -81,10 +81,76 @@ class Program
             var linkProcessor = new LinkProcessor();
 
             // Filter out regions with ID >= 11000001 and their associated systems/constellations
+
+            // ignore the following regionss
+            var regionsToIgnore = new List<int> 
+                {   
+                    // CCP Regions
+                    10000004,
+                    10000017,
+                    10000019,
+
+                    // wormhold regions
+                    11000001, 
+                    11000002,
+                    11000003, 
+                    11000004, 
+                    11000005, 
+                    11000006, 
+                    11000007, 
+                    11000008, 
+                    11000009, 
+                    11000010, 
+                    11000011, 
+                    11000012, 
+                    11000013, 
+                    11000014, 
+                    11000015, 
+                    11000016, 
+                    11000017, 
+                    11000018, 
+                    11000019, 
+                    11000020, 
+                    11000021, 
+                    11000022, 
+                    11000023, 
+                    11000024, 
+                    11000025, 
+                    11000026, 
+                    11000027,
+                    11000028, 
+                    11000029, 
+                    11000030, 
+                    11000031, 
+                    11000032, 
+                    11000033,
+
+                    // ADR
+                    12000001, 
+                    12000002,
+                    12000003,
+                    12000004,
+                    12000005,
+
+                    // VR- regions
+                    14000001,
+                    14000002,
+                    14000003,
+                    14000004,
+                    14000005,
+
+                    // GPM
+                    19000001
+                    };
+            
+
+
             Console.WriteLine("Filtering data for render database...");
-            var filteredRegions = regions.Where(r => r.Id < 11000001).ToList();
-            var filteredSystems = solarSystems.Where(s => !s.RegionId.HasValue || s.RegionId.Value < 11000001).ToList();
-            var filteredConstellations = constellations.Where(c => !c.RegionId.HasValue || c.RegionId.Value < 11000001).ToList();
+
+
+            var filteredRegions = regions.Where(r => !regionsToIgnore.Contains(r.Id)).ToList();
+            var filteredSystems = solarSystems.Where(s => !s.RegionId.HasValue || !regionsToIgnore.Contains(s.RegionId.Value)).ToList();
+            var filteredConstellations = constellations.Where(c => !c.RegionId.HasValue || !regionsToIgnore.Contains(c.RegionId.Value)).ToList();
             
             Console.WriteLine($"Filtered regions: {filteredRegions.Count} (from {regions.Count})");
             Console.WriteLine($"Filtered systems: {filteredSystems.Count} (from {solarSystems.Count})");
