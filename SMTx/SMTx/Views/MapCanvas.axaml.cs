@@ -252,7 +252,7 @@ public partial class MapCanvas : UserControl
                 var regionalPaint = new SKPaint
                 {
                     Color = SKColors.Red,
-                    IsAntialias = false, // Disable antialiasing for performance
+                    IsAntialias = true, // Enable antialiasing for smooth rendering
                     Style = SKPaintStyle.Stroke,
                     StrokeWidth = 1.0f
                 };
@@ -260,7 +260,7 @@ public partial class MapCanvas : UserControl
                 var constellationPaint = new SKPaint
                 {
                     Color = SKColors.Cyan,
-                    IsAntialias = false,
+                    IsAntialias = true,
                     Style = SKPaintStyle.Stroke,
                     StrokeWidth = 1.0f
                 };
@@ -268,7 +268,7 @@ public partial class MapCanvas : UserControl
                 var regularPaint = new SKPaint
                 {
                     Color = SKColors.Gray,
-                    IsAntialias = false,
+                    IsAntialias = true,
                     Style = SKPaintStyle.Stroke,
                     StrokeWidth = 1.0f
                 };
@@ -330,7 +330,7 @@ public partial class MapCanvas : UserControl
             var paint = new SKPaint
             {
                 Color = SKColors.White,
-                IsAntialias = false, // Disable antialiasing for performance
+                IsAntialias = true, // Enable antialiasing for smooth rendering
                 Style = SKPaintStyle.Fill
             };
 
