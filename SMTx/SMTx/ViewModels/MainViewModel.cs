@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -11,6 +12,7 @@ namespace SMTx.ViewModels;
 public class MainViewModel : ViewModelBase
 {
     private ObservableCollection<RenderSolarSystem> _solarSystems = new();
+    private List<StargateLink> _stargateLinks = new();
     
     // 3D Camera properties
     private double _cameraDistance = 20000.0;
@@ -35,6 +37,16 @@ public class MainViewModel : ViewModelBase
     {
         get => _solarSystems;
         set => this.RaiseAndSetIfChanged(ref _solarSystems, value);
+    }
+
+    public List<StargateLink> StargateLinks
+    {
+        get => _stargateLinks;
+        set
+        {
+            _stargateLinks = value;
+            this.RaisePropertyChanged();
+        }
     }
 
     // Camera distance (zoom)
@@ -103,10 +115,12 @@ public class MainViewModel : ViewModelBase
 
         var reader = new RenderDatabaseReader(dbPath);
         var systems = reader.LoadSolarSystems();
+        var links = reader.LoadStargateLinks();
         
-        System.Diagnostics.Debug.WriteLine($"Loaded {systems.Count} solar systems from {dbPath}");
+        System.Diagnostics.Debug.WriteLine($"Loaded {systems.Count} solar systems and {links.Count} stargate links from {dbPath}");
         
         SolarSystems = new ObservableCollection<RenderSolarSystem>(systems);
+        StargateLinks = links;
         
         if (systems.Count > 0)
         {

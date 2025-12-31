@@ -82,6 +82,39 @@ public class RenderDatabaseReader
         return systems;
     }
 
+    public List<StargateLink> LoadStargateLinks()
+    {
+        var links = new List<StargateLink>();
+
+        if (!File.Exists(_dbPath))
+        {
+            return links;
+        }
+
+        using var connection = new SQLiteConnection($"Data Source={_dbPath};Version=3;");
+        connection.Open();
+
+        var query = "SELECT SourceSystemId, DestinationSystemId, LinkType FROM StargateLinks";
+        using var command = new SQLiteCommand(query, connection);
+        using var reader = command.ExecuteReader();
+
+        while (reader.Read())
+        {
+            var sourceId = reader.GetInt32(0);
+            var destId = reader.GetInt32(1);
+            var linkType = reader.IsDBNull(2) ? "regular" : reader.GetString(2);
+
+            links.Add(new StargateLink
+            {
+                SourceSystemId = sourceId,
+                DestinationSystemId = destId,
+                LinkType = linkType ?? "regular"
+            });
+        }
+
+        return links;
+    }
+
     private class CoordinateData
     {
         [System.Text.Json.Serialization.JsonPropertyName("x")]

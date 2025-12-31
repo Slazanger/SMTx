@@ -78,6 +78,7 @@ public partial class MapCanvas : UserControl
         }
         
         if (e.PropertyName == nameof(MainViewModel.SolarSystems) ||
+            e.PropertyName == nameof(MainViewModel.StargateLinks) ||
             e.PropertyName == nameof(MainViewModel.CameraDistance) ||
             e.PropertyName == nameof(MainViewModel.CameraRotationX) ||
             e.PropertyName == nameof(MainViewModel.CameraRotationY) ||
@@ -240,6 +241,62 @@ public partial class MapCanvas : UserControl
                     var minY = allProjected.Min(p => p.ScreenY);
                     var maxY = allProjected.Max(p => p.ScreenY);
                     System.Diagnostics.Debug.WriteLine($"Screen bounds: X=[{minX:F2}, {maxX:F2}], Y=[{minY:F2}, {maxY:F2}], Canvas=[0, {pixelSize.Width}]x[0, {pixelSize.Height}]");
+                }
+            }
+
+            // Create lookup dictionary for systems by ID
+            var systemLookup = allProjected.ToDictionary(p => p.System.Id);
+
+            // Draw stargate links first (behind systems)
+            if (_viewModel.StargateLinks != null && _viewModel.StargateLinks.Count > 0)
+            {
+                foreach (var link in _viewModel.StargateLinks)
+                {
+                    if (!systemLookup.TryGetValue(link.SourceSystemId, out var source) ||
+                        !systemLookup.TryGetValue(link.DestinationSystemId, out var dest))
+                    {
+                        continue;
+                    }
+
+                    // Skip if either point is off-screen
+                    if (double.IsNaN(source.ScreenX) || double.IsNaN(dest.ScreenX))
+                        continue;
+
+                    // Determine color based on link type
+                    SKColor linkColor;
+                    float lineWidth = 1.0f;
+                    
+                    switch (link.LinkType.ToLower())
+                    {
+                        case "regional":
+                            linkColor = SKColors.Red;
+                            lineWidth = 2.0f;
+                            break;
+                        case "constellation":
+                            linkColor = SKColors.Cyan;
+                            lineWidth = 1.5f;
+                            break;
+                        case "regular":
+                        default:
+                            linkColor = SKColors.Gray;
+                            lineWidth = 1.0f;
+                            break;
+                    }
+
+                    // Create paint for the link
+                    var linkPaint = new SKPaint
+                    {
+                        Color = linkColor,
+                        IsAntialias = true,
+                        Style = SKPaintStyle.Stroke,
+                        StrokeWidth = lineWidth
+                    };
+
+                    // Draw line between systems
+                    canvas.DrawLine(
+                        (float)source.ScreenX, (float)source.ScreenY,
+                        (float)dest.ScreenX, (float)dest.ScreenY,
+                        linkPaint);
                 }
             }
 
