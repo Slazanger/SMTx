@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Specialized;
-using System.IO;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using SkiaSharp;
 using SMTx.Models;
 using SMTx.ViewModels;
@@ -16,7 +16,7 @@ namespace SMTx.Views;
 public partial class MapCanvas : UserControl
 {
     private MainViewModel? _viewModel;
-    private Bitmap? _bitmap;
+    private WriteableBitmap? _bitmap;
     private bool _needsRedraw = true;
     private PixelSize _lastPixelSize;
     private Point _lastMousePosition;
@@ -172,6 +172,7 @@ public partial class MapCanvas : UserControl
 
         var pixelSize = new PixelSize((int)Math.Ceiling(bounds.Width), (int)Math.Ceiling(bounds.Height));
 
+        // Only redraw if needed
         if (_needsRedraw || _bitmap == null || _lastPixelSize != pixelSize)
         {
             RedrawBitmap(pixelSize);
@@ -187,14 +188,27 @@ public partial class MapCanvas : UserControl
 
     private void RedrawBitmap(PixelSize pixelSize)
     {
+        // Create or recreate WriteableBitmap
+        if (_bitmap == null || _bitmap.PixelSize != pixelSize)
+        {
+            _bitmap?.Dispose();
+            _bitmap = new WriteableBitmap(pixelSize, new Vector(96, 96), PixelFormat.Rgba8888, AlphaFormat.Premul);
+        }
+
         var imageInfo = new SKImageInfo(pixelSize.Width, pixelSize.Height, SKColorType.Rgba8888, SKAlphaType.Premul);
         
-        using var surface = SKSurface.Create(imageInfo);
-        if (surface == null)
-            return;
+        // Use WriteableBitmap's pixel buffer directly for GPU-accelerated rendering
+        using (var lockedBitmap = _bitmap.Lock())
+        {
+            var address = lockedBitmap.Address;
+            var rowBytes = lockedBitmap.RowBytes;
+            
+            using var surface = SKSurface.Create(imageInfo, address, rowBytes);
+            if (surface == null)
+                return;
 
-        var canvas = surface.Canvas;
-        canvas.Clear(SKColors.Black);
+            var canvas = surface.Canvas;
+            canvas.Clear(SKColors.Black);
 
         if (_viewModel?.SolarSystems != null && _viewModel.SolarSystems.Count > 0)
         {
@@ -217,39 +231,55 @@ public partial class MapCanvas : UserControl
                 .Where(p => !double.IsNaN(p.ScreenX) && !double.IsNaN(p.ScreenY))
                 .ToList();
 
-            // Filter visible (wider range for debugging)
+            // Filter visible systems (only those on or near screen)
+            var systemScreenMargin = 50.0;
             var projectedSystems = allProjected
-                .Where(p => p.ScreenX >= -pixelSize.Width * 2 && p.ScreenX <= pixelSize.Width * 3 &&
-                           p.ScreenY >= -pixelSize.Height * 2 && p.ScreenY <= pixelSize.Height * 3)
+                .Where(p => p.ScreenX >= -systemScreenMargin && p.ScreenX <= pixelSize.Width + systemScreenMargin &&
+                           p.ScreenY >= -systemScreenMargin && p.ScreenY <= pixelSize.Height + systemScreenMargin)
                 .OrderBy(p => p.Depth) // Sort by depth (back to front)
                 .ToList();
 
-            // Debug: Log first few projected points and all systems
-            System.Diagnostics.Debug.WriteLine($"Total systems: {_viewModel.SolarSystems.Count}, Projected: {allProjected.Count}, Visible: {projectedSystems.Count}");
-            if (allProjected.Count > 0)
-            {
-                var first = allProjected[0];
-                System.Diagnostics.Debug.WriteLine($"First system: World({first.System.WorldX:F2}, {first.System.WorldY:F2}, {first.System.WorldZ:F2}) -> Screen({first.ScreenX:F2}, {first.ScreenY:F2}), Depth={first.Depth:F2}");
-                System.Diagnostics.Debug.WriteLine($"Camera: Distance={_viewModel.CameraDistance:F2}, Center=({_viewModel.CameraCenterX:F2}, {_viewModel.CameraCenterY:F2}, {_viewModel.CameraCenterZ:F2})");
-                System.Diagnostics.Debug.WriteLine($"Camera Rot: X={_viewModel.CameraRotationX:F2}, Y={_viewModel.CameraRotationY:F2}, Z={_viewModel.CameraRotationZ:F2}");
-                
-                // Show min/max screen coordinates
-                if (allProjected.Count > 0)
-                {
-                    var minX = allProjected.Min(p => p.ScreenX);
-                    var maxX = allProjected.Max(p => p.ScreenX);
-                    var minY = allProjected.Min(p => p.ScreenY);
-                    var maxY = allProjected.Max(p => p.ScreenY);
-                    System.Diagnostics.Debug.WriteLine($"Screen bounds: X=[{minX:F2}, {maxX:F2}], Y=[{minY:F2}, {maxY:F2}], Canvas=[0, {pixelSize.Width}]x[0, {pixelSize.Height}]");
-                }
-            }
+            // Debug output removed for performance
 
             // Create lookup dictionary for systems by ID
             var systemLookup = allProjected.ToDictionary(p => p.System.Id);
 
             // Draw stargate links first (behind systems)
+            // Only draw links where both systems are visible on screen
             if (_viewModel.StargateLinks != null && _viewModel.StargateLinks.Count > 0)
             {
+                // Pre-create paint objects for each link type to avoid recreating them
+                var regionalPaint = new SKPaint
+                {
+                    Color = SKColors.Red,
+                    IsAntialias = false, // Disable antialiasing for performance
+                    Style = SKPaintStyle.Stroke,
+                    StrokeWidth = 1.0f
+                };
+
+                var constellationPaint = new SKPaint
+                {
+                    Color = SKColors.Cyan,
+                    IsAntialias = false,
+                    Style = SKPaintStyle.Stroke,
+                    StrokeWidth = 1.0f
+                };
+
+                var regularPaint = new SKPaint
+                {
+                    Color = SKColors.Gray,
+                    IsAntialias = false,
+                    Style = SKPaintStyle.Stroke,
+                    StrokeWidth = 1.0f
+                };
+
+                // Calculate screen bounds with margin for lines that extend slightly off-screen
+                var linkScreenMargin = 100.0;
+                var minScreenX = -linkScreenMargin;
+                var maxScreenX = pixelSize.Width + linkScreenMargin;
+                var minScreenY = -linkScreenMargin;
+                var maxScreenY = pixelSize.Height + linkScreenMargin;
+
                 foreach (var link in _viewModel.StargateLinks)
                 {
                     if (!systemLookup.TryGetValue(link.SourceSystemId, out var source) ||
@@ -258,39 +288,35 @@ public partial class MapCanvas : UserControl
                         continue;
                     }
 
-                    // Skip if either point is off-screen
+                    // Skip if either point is invalid
                     if (double.IsNaN(source.ScreenX) || double.IsNaN(dest.ScreenX))
                         continue;
 
-                    // Determine color based on link type
-                    SKColor linkColor;
-                    float lineWidth = 1.0f;
+                    // Quick visibility check - skip if both points are far off-screen
+                    var sourceVisible = source.ScreenX >= minScreenX && source.ScreenX <= maxScreenX &&
+                                       source.ScreenY >= minScreenY && source.ScreenY <= maxScreenY;
+                    var destVisible = dest.ScreenX >= minScreenX && dest.ScreenX <= maxScreenX &&
+                                      dest.ScreenY >= minScreenY && dest.ScreenY <= maxScreenY;
                     
+                    // Only draw if at least one endpoint is visible
+                    if (!sourceVisible && !destVisible)
+                        continue;
+
+                    // Select paint based on link type
+                    SKPaint linkPaint;
                     switch (link.LinkType.ToLower())
                     {
                         case "regional":
-                            linkColor = SKColors.Red;
-                            lineWidth = 2.0f;
+                            linkPaint = regionalPaint;
                             break;
                         case "constellation":
-                            linkColor = SKColors.Cyan;
-                            lineWidth = 1.5f;
+                            linkPaint = constellationPaint;
                             break;
                         case "regular":
                         default:
-                            linkColor = SKColors.Gray;
-                            lineWidth = 1.0f;
+                            linkPaint = regularPaint;
                             break;
                     }
-
-                    // Create paint for the link
-                    var linkPaint = new SKPaint
-                    {
-                        Color = linkColor,
-                        IsAntialias = true,
-                        Style = SKPaintStyle.Stroke,
-                        StrokeWidth = lineWidth
-                    };
 
                     // Draw line between systems
                     canvas.DrawLine(
@@ -300,37 +326,32 @@ public partial class MapCanvas : UserControl
                 }
             }
 
-            // Create paint for solar systems
+            // Create paint for solar systems (reuse single paint object)
             var paint = new SKPaint
             {
                 Color = SKColors.White,
-                IsAntialias = true,
+                IsAntialias = false, // Disable antialiasing for performance
                 Style = SKPaintStyle.Fill
             };
 
-            // Draw each solar system
+            // Draw each solar system (only visible ones)
             foreach (var projected in projectedSystems)
             {
+                // Skip if off-screen
+                if (projected.ScreenX < 0 || projected.ScreenX > pixelSize.Width ||
+                    projected.ScreenY < 0 || projected.ScreenY > pixelSize.Height)
+                {
+                    continue;
+                }
+
                 // Calculate size based on depth (closer = larger)
                 var depthFactor = Math.Max(0.1, 1.0 - (projected.Depth + _viewModel.CameraDistance) / (_viewModel.CameraDistance * 2.0));
-                var radius = (float)(5.0 * depthFactor);
+                var radius = (float)(15.0 * depthFactor);
 
                 // Draw circle
-                if (projected.ScreenX >= 0 && projected.ScreenX <= pixelSize.Width &&
-                    projected.ScreenY >= 0 && projected.ScreenY <= pixelSize.Height)
-                {
-                    canvas.DrawCircle((float)projected.ScreenX, (float)projected.ScreenY, radius, paint);
-                }
+                canvas.DrawCircle((float)projected.ScreenX, (float)projected.ScreenY, radius, paint);
             }
 
-            // Debug: Draw center point
-            var centerPaint = new SKPaint
-            {
-                Color = SKColors.Red,
-                IsAntialias = true,
-                Style = SKPaintStyle.Fill
-            };
-            canvas.DrawCircle(pixelSize.Width / 2.0f, pixelSize.Height / 2.0f, 10.0f, centerPaint);
         }
         else
         {
@@ -338,20 +359,11 @@ public partial class MapCanvas : UserControl
             var testPaint = new SKPaint
             {
                 Color = SKColors.Red,
-                IsAntialias = true,
+                IsAntialias = false,
                 Style = SKPaintStyle.Fill
             };
             canvas.DrawCircle(pixelSize.Width / 2.0f, pixelSize.Height / 2.0f, 20.0f, testPaint);
         }
-
-        // Convert Skia image to Avalonia bitmap
-        using var image = surface.Snapshot();
-        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-        if (data != null)
-        {
-            _bitmap?.Dispose();
-            using var stream = data.AsStream();
-            _bitmap = new Bitmap(stream);
         }
     }
 
