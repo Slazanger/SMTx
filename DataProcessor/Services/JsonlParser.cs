@@ -45,6 +45,12 @@ public class JsonlParser
                     }
                 }
 
+                // Extract regionID
+                if (root.TryGetProperty("regionID", out var regionElement))
+                {
+                    system.RegionId = regionElement.GetInt32();
+                }
+
                 // Extract constellationID
                 if (root.TryGetProperty("constellationID", out var constellationElement))
                 {
@@ -75,8 +81,6 @@ public class JsonlParser
                         system.Position2DX = x2dElement.GetDecimal();
                     if (position2dElement.TryGetProperty("y", out var y2dElement))
                         system.Position2DY = y2dElement.GetDecimal();
-                    // position2D only has x and y, no z
-                    system.Position2DZ = null;
                 }
 
                 // Extract securityClass

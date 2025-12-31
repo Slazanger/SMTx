@@ -21,11 +21,15 @@ public class DatabaseService
             Directory.CreateDirectory(dbDirectory);
         }
 
-        // Create database file if it doesn't exist
-        if (!File.Exists(_dbPath))
+        // Delete existing database file if it exists
+        if (File.Exists(_dbPath))
         {
-            SQLiteConnection.CreateFile(_dbPath);
+            File.Delete(_dbPath);
+            Console.WriteLine($"Deleted existing database at {_dbPath}");
         }
+
+        // Create new database file
+        SQLiteConnection.CreateFile(_dbPath);
 
         using var connection = new SQLiteConnection($"Data Source={_dbPath};Version=3;");
         connection.Open();
@@ -34,6 +38,7 @@ public class DatabaseService
             CREATE TABLE IF NOT EXISTS SolarSystems (
                 Id INTEGER PRIMARY KEY,
                 Name TEXT,
+                RegionId INTEGER,
                 ConstellationId INTEGER,
                 FactionId INTEGER,
                 PositionX REAL,
@@ -41,9 +46,9 @@ public class DatabaseService
                 PositionZ REAL,
                 Position2DX REAL,
                 Position2DY REAL,
-                Position2DZ REAL,
                 SecurityClass TEXT,
-                SecurityStatus REAL
+                SecurityStatus REAL,
+                FOREIGN KEY (RegionId) REFERENCES Regions(Id)
             )";
 
         using var command1 = new SQLiteCommand(createSolarSystemsTableSql, connection);
@@ -75,19 +80,6 @@ public class DatabaseService
         using var command3 = new SQLiteCommand(createRegionsTableSql, connection);
         command3.ExecuteNonQuery();
 
-        // Clear existing data if re-running
-        var clearStargatesSql = "DELETE FROM Stargates";
-        using var clearStargatesCommand = new SQLiteCommand(clearStargatesSql, connection);
-        clearStargatesCommand.ExecuteNonQuery();
-
-        var clearSolarSystemsSql = "DELETE FROM SolarSystems";
-        using var clearSolarSystemsCommand = new SQLiteCommand(clearSolarSystemsSql, connection);
-        clearSolarSystemsCommand.ExecuteNonQuery();
-
-        var clearRegionsSql = "DELETE FROM Regions";
-        using var clearRegionsCommand = new SQLiteCommand(clearRegionsSql, connection);
-        clearRegionsCommand.ExecuteNonQuery();
-
         Console.WriteLine($"Database initialized at {_dbPath}");
     }
 
@@ -100,14 +92,14 @@ public class DatabaseService
 
         var insertSql = @"
             INSERT INTO SolarSystems (
-                Id, Name, ConstellationId, FactionId,
+                Id, Name, RegionId, ConstellationId, FactionId,
                 PositionX, PositionY, PositionZ,
-                Position2DX, Position2DY, Position2DZ,
+                Position2DX, Position2DY,
                 SecurityClass, SecurityStatus
             ) VALUES (
-                @Id, @Name, @ConstellationId, @FactionId,
+                @Id, @Name, @RegionId, @ConstellationId, @FactionId,
                 @PositionX, @PositionY, @PositionZ,
-                @Position2DX, @Position2DY, @Position2DZ,
+                @Position2DX, @Position2DY,
                 @SecurityClass, @SecurityStatus
             )";
 
@@ -115,6 +107,7 @@ public class DatabaseService
         
         command.Parameters.Add(new SQLiteParameter("@Id"));
         command.Parameters.Add(new SQLiteParameter("@Name"));
+        command.Parameters.Add(new SQLiteParameter("@RegionId"));
         command.Parameters.Add(new SQLiteParameter("@ConstellationId"));
         command.Parameters.Add(new SQLiteParameter("@FactionId"));
         command.Parameters.Add(new SQLiteParameter("@PositionX"));
@@ -122,7 +115,6 @@ public class DatabaseService
         command.Parameters.Add(new SQLiteParameter("@PositionZ"));
         command.Parameters.Add(new SQLiteParameter("@Position2DX"));
         command.Parameters.Add(new SQLiteParameter("@Position2DY"));
-        command.Parameters.Add(new SQLiteParameter("@Position2DZ"));
         command.Parameters.Add(new SQLiteParameter("@SecurityClass"));
         command.Parameters.Add(new SQLiteParameter("@SecurityStatus"));
 
@@ -131,6 +123,7 @@ public class DatabaseService
         {
             command.Parameters["@Id"].Value = system.Id;
             command.Parameters["@Name"].Value = (object?)system.Name ?? DBNull.Value;
+            command.Parameters["@RegionId"].Value = (object?)system.RegionId ?? DBNull.Value;
             command.Parameters["@ConstellationId"].Value = (object?)system.ConstellationId ?? DBNull.Value;
             command.Parameters["@FactionId"].Value = (object?)system.FactionId ?? DBNull.Value;
             command.Parameters["@PositionX"].Value = (object?)system.PositionX ?? DBNull.Value;
@@ -138,7 +131,6 @@ public class DatabaseService
             command.Parameters["@PositionZ"].Value = (object?)system.PositionZ ?? DBNull.Value;
             command.Parameters["@Position2DX"].Value = (object?)system.Position2DX ?? DBNull.Value;
             command.Parameters["@Position2DY"].Value = (object?)system.Position2DY ?? DBNull.Value;
-            command.Parameters["@Position2DZ"].Value = (object?)system.Position2DZ ?? DBNull.Value;
             command.Parameters["@SecurityClass"].Value = (object?)system.SecurityClass ?? DBNull.Value;
             command.Parameters["@SecurityStatus"].Value = (object?)system.SecurityStatus ?? DBNull.Value;
 
