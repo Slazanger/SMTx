@@ -80,18 +80,37 @@ class Program
             var coordinateScaler = new CoordinateScaler();
             var linkProcessor = new LinkProcessor();
 
+            // Filter out regions with ID >= 11000001 and their associated systems/constellations
+            Console.WriteLine("Filtering data for render database...");
+            var filteredRegions = regions.Where(r => r.Id < 11000001).ToList();
+            var filteredSystems = solarSystems.Where(s => !s.RegionId.HasValue || s.RegionId.Value < 11000001).ToList();
+            var filteredConstellations = constellations.Where(c => !c.RegionId.HasValue || c.RegionId.Value < 11000001).ToList();
+            
+            Console.WriteLine($"Filtered regions: {filteredRegions.Count} (from {regions.Count})");
+            Console.WriteLine($"Filtered systems: {filteredSystems.Count} (from {solarSystems.Count})");
+            Console.WriteLine($"Filtered constellations: {filteredConstellations.Count} (from {constellations.Count})");
+            Console.WriteLine();
+
+            // Filter stargates to only include links between filtered systems
+            var filteredSystemIds = new HashSet<int>(filteredSystems.Select(s => s.Id));
+            var filteredStargates = stargates.Where(s => 
+                filteredSystemIds.Contains(s.SourceSystemId) && 
+                filteredSystemIds.Contains(s.DestinationSystemId)).ToList();
+            Console.WriteLine($"Filtered stargates: {filteredStargates.Count} (from {stargates.Count})");
+            Console.WriteLine();
+
             // Calculate bounding boxes
             Console.WriteLine("Calculating bounding boxes...");
-            var systemBounds = coordinateScaler.CalculateBoundingBox(solarSystems);
-            var regionBounds = coordinateScaler.CalculateBoundingBox(regions);
-            var constellationBounds = coordinateScaler.CalculateBoundingBox(constellations);
+            var systemBounds = coordinateScaler.CalculateBoundingBox(filteredSystems);
+            var regionBounds = coordinateScaler.CalculateBoundingBox(filteredRegions);
+            var constellationBounds = coordinateScaler.CalculateBoundingBox(filteredConstellations);
             Console.WriteLine($"System bounds: X[{systemBounds.MinX:F2}, {systemBounds.MaxX:F2}], Y[{systemBounds.MinY:F2}, {systemBounds.MaxY:F2}], Z[{systemBounds.MinZ:F2}, {systemBounds.MaxZ:F2}]");
             Console.WriteLine();
 
             // Scale coordinates for solar systems
             Console.WriteLine("Scaling solar system coordinates...");
             var systemRenderCoords = new Dictionary<int, string>();
-            foreach (var system in solarSystems)
+            foreach (var system in filteredSystems)
             {
                 var coords = coordinateScaler.ScaleCoordinates(system.PositionX, system.PositionY, system.PositionZ, systemBounds);
                 systemRenderCoords[system.Id] = coords;
@@ -100,7 +119,7 @@ class Program
             // Scale coordinates for regions
             Console.WriteLine("Scaling region coordinates...");
             var regionRenderCoords = new Dictionary<int, string>();
-            foreach (var region in regions)
+            foreach (var region in filteredRegions)
             {
                 var coords = coordinateScaler.ScaleCoordinates(region.PositionX, region.PositionY, region.PositionZ, regionBounds);
                 regionRenderCoords[region.Id] = coords;
@@ -109,7 +128,7 @@ class Program
             // Scale coordinates for constellations
             Console.WriteLine("Scaling constellation coordinates...");
             var constellationRenderCoords = new Dictionary<int, string>();
-            foreach (var constellation in constellations)
+            foreach (var constellation in filteredConstellations)
             {
                 var coords = coordinateScaler.ScaleCoordinates(constellation.PositionX, constellation.PositionY, constellation.PositionZ, constellationBounds);
                 constellationRenderCoords[constellation.Id] = coords;
@@ -118,8 +137,8 @@ class Program
 
             // Process stargate links
             Console.WriteLine("Processing stargate links...");
-            var systemLookup = solarSystems.ToDictionary(s => s.Id);
-            var stargateLinks = linkProcessor.ProcessStargateLinks(stargates, systemLookup);
+            var systemLookup = filteredSystems.ToDictionary(s => s.Id);
+            var stargateLinks = linkProcessor.ProcessStargateLinks(filteredStargates, systemLookup);
             Console.WriteLine($"Generated {stargateLinks.Count} unique stargate links");
             Console.WriteLine($"  Regular: {stargateLinks.Count(l => l.LinkType == "regular")}");
             Console.WriteLine($"  Constellation: {stargateLinks.Count(l => l.LinkType == "constellation")}");
@@ -134,9 +153,9 @@ class Program
 
             // Create render database
             renderDbService.InitializeDatabase();
-            renderDbService.InsertSolarSystems(solarSystems, systemRenderCoords);
-            renderDbService.InsertRegions(regions, regionRenderCoords);
-            renderDbService.InsertConstellations(constellations, constellationRenderCoords);
+            renderDbService.InsertSolarSystems(filteredSystems, systemRenderCoords);
+            renderDbService.InsertRegions(filteredRegions, regionRenderCoords);
+            renderDbService.InsertConstellations(filteredConstellations, constellationRenderCoords);
             renderDbService.InsertStargateLinks(stargateLinks);
             renderDbService.InsertConstellationLinks(constellationLinks);
             Console.WriteLine();
