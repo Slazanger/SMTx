@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using ReactiveUI;
 using SMTx.Models;
@@ -14,6 +15,7 @@ public class MainViewModel : ViewModelBase
 {
     private ObservableCollection<RenderSolarSystem> _solarSystems = new();
     private List<StargateLink> _stargateLinks = new();
+    private readonly IDataService _dataService;
     
     // 3D Camera properties
     private double _cameraDistance = 20000.0;
@@ -31,10 +33,23 @@ public class MainViewModel : ViewModelBase
 
     public ICommand ResetViewCommand { get; }
 
-    public MainViewModel()
+    public MainViewModel(IDataService? dataService = null)
     {
-        LoadSolarSystems();
-        ResetViewCommand = ReactiveCommand.Create(ResetView);
+        System.Diagnostics.Debug.WriteLine("MainViewModel constructor started");
+        try
+        {
+            _dataService = dataService ?? CreateDefaultDataService();
+            System.Diagnostics.Debug.WriteLine($"DataService type: {_dataService.GetType().Name}");
+            _ = LoadSolarSystemsAsync(); // Fire and forget async load
+            ResetViewCommand = ReactiveCommand.Create(ResetView);
+            System.Diagnostics.Debug.WriteLine("MainViewModel constructor completed");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"ERROR in MainViewModel constructor: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+            throw;
+        }
     }
 
     public ObservableCollection<RenderSolarSystem> SolarSystems
@@ -85,7 +100,58 @@ public class MainViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _fieldOfView, value);
     }
 
-    private void LoadSolarSystems()
+    private async Task LoadSolarSystemsAsync()
+    {
+        System.Diagnostics.Debug.WriteLine("LoadSolarSystemsAsync started");
+        Console.WriteLine("LoadSolarSystemsAsync started");
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("Loading solar systems...");
+            Console.WriteLine("Loading solar systems...");
+            var systems = await _dataService.LoadSolarSystemsAsync();
+            System.Diagnostics.Debug.WriteLine($"Loaded {systems.Count} solar systems");
+            Console.WriteLine($"Loaded {systems.Count} solar systems");
+            
+            System.Diagnostics.Debug.WriteLine("Loading stargate links...");
+            Console.WriteLine("Loading stargate links...");
+            var links = await _dataService.LoadStargateLinksAsync();
+            System.Diagnostics.Debug.WriteLine($"Loaded {links.Count} stargate links");
+            Console.WriteLine($"Loaded {links.Count} stargate links");
+            
+            SolarSystems = new ObservableCollection<RenderSolarSystem>(systems);
+            StargateLinks = links;
+            
+            if (systems.Count > 0)
+            {
+                System.Diagnostics.Debug.WriteLine("Calculating initial camera...");
+                Console.WriteLine("Calculating initial camera...");
+                CalculateInitialCamera();
+                System.Diagnostics.Debug.WriteLine("Initial camera calculated");
+                Console.WriteLine("Initial camera calculated");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("WARNING: No solar systems loaded!");
+                Console.WriteLine("WARNING: No solar systems loaded!");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"=== ERROR loading solar systems ===");
+            System.Diagnostics.Debug.WriteLine($"Message: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+            Console.WriteLine($"=== ERROR loading solar systems ===");
+            Console.WriteLine($"Message: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            if (ex.InnerException != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"Inner exception: {ex.InnerException.Message}");
+                Console.WriteLine($"Inner exception: {ex.InnerException.Message}");
+            }
+        }
+    }
+
+    private static IDataService CreateDefaultDataService()
     {
         // Try to find the database path relative to workspace root
         var appDirectory = AppDomain.CurrentDomain.BaseDirectory;
@@ -113,23 +179,13 @@ public class MainViewModel : ViewModelBase
             }
             else
             {
-                return;
+                System.Diagnostics.Debug.WriteLine($"Database not found. Searched: {dbPath} and {altPath}");
+                // Return a JSON service that will try to load from default location
+                return new JsonDataService();
             }
         }
 
-        var reader = new RenderDatabaseReader(dbPath);
-        var systems = reader.LoadSolarSystems();
-        var links = reader.LoadStargateLinks();
-        
-        System.Diagnostics.Debug.WriteLine($"Loaded {systems.Count} solar systems and {links.Count} stargate links from {dbPath}");
-        
-        SolarSystems = new ObservableCollection<RenderSolarSystem>(systems);
-        StargateLinks = links;
-        
-        if (systems.Count > 0)
-        {
-            CalculateInitialCamera();
-        }
+        return new SqliteDataService(dbPath);
     }
 
     private void CalculateInitialCamera()

@@ -10,6 +10,9 @@
 
 <body style="margin: 0; overflow: hidden">
 <div id="out">
+    <div id="test-message" style="position: absolute; top: 10px; left: 10px; background: red; color: white; padding: 10px; z-index: 10000;">
+        HTML loaded, waiting for Avalonia...
+    </div>
     <div class="avalonia-splash">
         <h2>
             Powered by
@@ -31,6 +34,16 @@
     </div>
 </div>
 <script type='module' src="./main.js"></script>
+<script>
+    // Add error handling for module loading
+    window.addEventListener('error', function(e) {
+        console.error('Global error:', e.error);
+        console.error('Error details:', e.filename, e.lineno, e.colno);
+    });
+    
+    // Log when main.js starts loading
+    console.log('Loading main.js...');
+</script>
 </body>
 
 </html>
