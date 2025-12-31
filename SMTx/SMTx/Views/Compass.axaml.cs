@@ -9,6 +9,10 @@ namespace SMTx.Views;
 public partial class Compass : UserControl
 {
     private MainViewModel? _viewModel;
+    
+    // Performance optimization: Cache pens and typeface
+    private static readonly Pen CompassPen = new Pen(Brushes.White, 2.0);
+    private static readonly Typeface CompassTypeface = new Typeface("Arial");
 
     public Compass()
     {
@@ -55,50 +59,47 @@ public partial class Compass : UserControl
         var center = new Point(centerX, centerY);
 
         // Draw compass circle
-        var pen = new Pen(Brushes.White, 2.0);
-        context.DrawEllipse(null, pen, center, radius, radius);
+        context.DrawEllipse(null, CompassPen, center, radius, radius);
 
         if (_viewModel != null)
         {
             // Draw cardinal directions
-            var textBrush = Brushes.White;
-            var typeface = new Typeface("Arial");
-            var fontSize = 14.0;
+            const double fontSize = 14.0;
 
             // North (Z+)
             var northAngle = -_viewModel.CameraRotationY;
             var northX = centerX + Math.Sin(northAngle) * (radius - 15);
             var northY = centerY - Math.Cos(northAngle) * (radius - 15);
-            var northPoint = new Point(northX, northY);
             var northText = new FormattedText("N", System.Globalization.CultureInfo.CurrentCulture, 
-                FlowDirection.LeftToRight, typeface, fontSize, textBrush);
+                FlowDirection.LeftToRight, CompassTypeface, fontSize, Brushes.White);
+            var northPoint = new Point(northX - northText.Width / 2.0, northY - northText.Height / 2.0);
             context.DrawText(northText, northPoint);
 
             // East (X+)
             var eastAngle = -_viewModel.CameraRotationY + Math.PI / 2.0;
             var eastX = centerX + Math.Sin(eastAngle) * (radius - 15);
             var eastY = centerY - Math.Cos(eastAngle) * (radius - 15);
-            var eastPoint = new Point(eastX, eastY);
             var eastText = new FormattedText("E", System.Globalization.CultureInfo.CurrentCulture, 
-                FlowDirection.LeftToRight, typeface, fontSize, textBrush);
+                FlowDirection.LeftToRight, CompassTypeface, fontSize, Brushes.White);
+            var eastPoint = new Point(eastX - eastText.Width / 2.0, eastY - eastText.Height / 2.0);
             context.DrawText(eastText, eastPoint);
 
             // South (Z-)
             var southAngle = -_viewModel.CameraRotationY + Math.PI;
             var southX = centerX + Math.Sin(southAngle) * (radius - 15);
             var southY = centerY - Math.Cos(southAngle) * (radius - 15);
-            var southPoint = new Point(southX, southY);
             var southText = new FormattedText("S", System.Globalization.CultureInfo.CurrentCulture, 
-                FlowDirection.LeftToRight, typeface, fontSize, textBrush);
+                FlowDirection.LeftToRight, CompassTypeface, fontSize, Brushes.White);
+            var southPoint = new Point(southX - southText.Width / 2.0, southY - southText.Height / 2.0);
             context.DrawText(southText, southPoint);
 
             // West (X-)
             var westAngle = -_viewModel.CameraRotationY - Math.PI / 2.0;
             var westX = centerX + Math.Sin(westAngle) * (radius - 15);
             var westY = centerY - Math.Cos(westAngle) * (radius - 15);
-            var westPoint = new Point(westX, westY);
             var westText = new FormattedText("W", System.Globalization.CultureInfo.CurrentCulture, 
-                FlowDirection.LeftToRight, typeface, fontSize, textBrush);
+                FlowDirection.LeftToRight, CompassTypeface, fontSize, Brushes.White);
+            var westPoint = new Point(westX - westText.Width / 2.0, westY - westText.Height / 2.0);
             context.DrawText(westText, westPoint);
 
             // Draw direction indicator (arrow pointing in camera's forward direction)
