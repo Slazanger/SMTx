@@ -80,6 +80,21 @@ public class DatabaseService
         using var command3 = new SQLiteCommand(createRegionsTableSql, connection);
         command3.ExecuteNonQuery();
 
+        var createConstellationsTableSql = @"
+            CREATE TABLE IF NOT EXISTS Constellations (
+                Id INTEGER PRIMARY KEY,
+                Name TEXT,
+                RegionId INTEGER,
+                FactionId INTEGER,
+                PositionX REAL,
+                PositionY REAL,
+                PositionZ REAL,
+                FOREIGN KEY (RegionId) REFERENCES Regions(Id)
+            )";
+
+        using var command4 = new SQLiteCommand(createConstellationsTableSql, connection);
+        command4.ExecuteNonQuery();
+
         Console.WriteLine($"Database initialized at {_dbPath}");
     }
 
@@ -233,6 +248,54 @@ public class DatabaseService
 
         transaction.Commit();
         Console.WriteLine($"Successfully inserted {inserted} regions into database.");
+    }
+
+    public void InsertConstellations(List<Constellation> constellations)
+    {
+        using var connection = new SQLiteConnection($"Data Source={_dbPath};Version=3;");
+        connection.Open();
+
+        using var transaction = connection.BeginTransaction();
+
+        var insertSql = @"
+            INSERT INTO Constellations (
+                Id, Name, RegionId, FactionId, PositionX, PositionY, PositionZ
+            ) VALUES (
+                @Id, @Name, @RegionId, @FactionId, @PositionX, @PositionY, @PositionZ
+            )";
+
+        using var command = new SQLiteCommand(insertSql, connection, transaction);
+        
+        command.Parameters.Add(new SQLiteParameter("@Id"));
+        command.Parameters.Add(new SQLiteParameter("@Name"));
+        command.Parameters.Add(new SQLiteParameter("@RegionId"));
+        command.Parameters.Add(new SQLiteParameter("@FactionId"));
+        command.Parameters.Add(new SQLiteParameter("@PositionX"));
+        command.Parameters.Add(new SQLiteParameter("@PositionY"));
+        command.Parameters.Add(new SQLiteParameter("@PositionZ"));
+
+        var inserted = 0;
+        foreach (var constellation in constellations)
+        {
+            command.Parameters["@Id"].Value = constellation.Id;
+            command.Parameters["@Name"].Value = (object?)constellation.Name ?? DBNull.Value;
+            command.Parameters["@RegionId"].Value = (object?)constellation.RegionId ?? DBNull.Value;
+            command.Parameters["@FactionId"].Value = (object?)constellation.FactionId ?? DBNull.Value;
+            command.Parameters["@PositionX"].Value = (object?)constellation.PositionX ?? DBNull.Value;
+            command.Parameters["@PositionY"].Value = (object?)constellation.PositionY ?? DBNull.Value;
+            command.Parameters["@PositionZ"].Value = (object?)constellation.PositionZ ?? DBNull.Value;
+
+            command.ExecuteNonQuery();
+            inserted++;
+
+            if (inserted % 50 == 0)
+            {
+                Console.WriteLine($"  Inserted {inserted} constellations...");
+            }
+        }
+
+        transaction.Commit();
+        Console.WriteLine($"Successfully inserted {inserted} constellations into database.");
     }
 }
 

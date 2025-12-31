@@ -39,6 +39,7 @@ class Program
             var jsonlParser = new JsonlParser();
             var stargateParser = new StargateParser();
             var regionParser = new RegionParser();
+            var constellationParser = new ConstellationParser();
 
             // Step 1: Get/download latest SDE
             var sdeFolder = await sdeDownloadService.EnsureSdeDownloadedAsync();
@@ -56,7 +57,11 @@ class Program
             var regions = await regionParser.ParseRegionsAsync(sdeFolder);
             Console.WriteLine();
 
-            // Step 5: Store results in database
+            // Step 5: Process mapConstellations.jsonl to extract constellation data
+            var constellations = await constellationParser.ParseConstellationsAsync(sdeFolder);
+            Console.WriteLine();
+
+            // Step 6: Store results in database
             var buildNumber = Path.GetFileName(sdeFolder);
             var dbPath = Path.Combine(sdeFolder, "universe.db");
             var databaseService = new DatabaseService(dbPath);
@@ -65,9 +70,10 @@ class Program
             databaseService.InsertSolarSystems(solarSystems);
             databaseService.InsertStargates(stargates);
             databaseService.InsertRegions(regions);
+            databaseService.InsertConstellations(constellations);
             Console.WriteLine();
 
-            // Step 6: Display summary statistics
+            // Step 7: Display summary statistics
             Console.WriteLine("=== Processing Complete ===");
             Console.WriteLine($"Build Number: {buildNumber}");
             Console.WriteLine($"Total Solar Systems: {solarSystems.Count}");
@@ -76,6 +82,8 @@ class Program
             Console.WriteLine($"Unique Connections: {stargates.Select(s => new { s.SourceSystemId, s.DestinationSystemId }).Distinct().Count()}");
             Console.WriteLine($"Total Regions: {regions.Count}");
             Console.WriteLine($"Regions with Names: {regions.Count(r => !string.IsNullOrEmpty(r.Name))}");
+            Console.WriteLine($"Total Constellations: {constellations.Count}");
+            Console.WriteLine($"Constellations with Names: {constellations.Count(c => !string.IsNullOrEmpty(c.Name))}");
             Console.WriteLine($"Database Location: {dbPath}");
         }
         catch (Exception ex)
