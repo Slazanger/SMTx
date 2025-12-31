@@ -30,7 +30,7 @@ public class DatabaseService
         using var connection = new SQLiteConnection($"Data Source={_dbPath};Version=3;");
         connection.Open();
 
-        var createTableSql = @"
+        var createSolarSystemsTableSql = @"
             CREATE TABLE IF NOT EXISTS SolarSystems (
                 Id INTEGER PRIMARY KEY,
                 Name TEXT,
@@ -46,13 +46,30 @@ public class DatabaseService
                 SecurityStatus REAL
             )";
 
-        using var command = new SQLiteCommand(createTableSql, connection);
-        command.ExecuteNonQuery();
+        using var command1 = new SQLiteCommand(createSolarSystemsTableSql, connection);
+        command1.ExecuteNonQuery();
+
+        var createStargatesTableSql = @"
+            CREATE TABLE IF NOT EXISTS Stargates (
+                Id INTEGER PRIMARY KEY,
+                SourceSystemId INTEGER NOT NULL,
+                DestinationSystemId INTEGER NOT NULL,
+                DestinationStargateId INTEGER,
+                FOREIGN KEY (SourceSystemId) REFERENCES SolarSystems(Id),
+                FOREIGN KEY (DestinationSystemId) REFERENCES SolarSystems(Id)
+            )";
+
+        using var command2 = new SQLiteCommand(createStargatesTableSql, connection);
+        command2.ExecuteNonQuery();
 
         // Clear existing data if re-running
-        var clearSql = "DELETE FROM SolarSystems";
-        using var clearCommand = new SQLiteCommand(clearSql, connection);
-        clearCommand.ExecuteNonQuery();
+        var clearStargatesSql = "DELETE FROM Stargates";
+        using var clearStargatesCommand = new SQLiteCommand(clearStargatesSql, connection);
+        clearStargatesCommand.ExecuteNonQuery();
+
+        var clearSolarSystemsSql = "DELETE FROM SolarSystems";
+        using var clearSolarSystemsCommand = new SQLiteCommand(clearSolarSystemsSql, connection);
+        clearSolarSystemsCommand.ExecuteNonQuery();
 
         Console.WriteLine($"Database initialized at {_dbPath}");
     }
@@ -119,6 +136,48 @@ public class DatabaseService
 
         transaction.Commit();
         Console.WriteLine($"Successfully inserted {inserted} solar systems into database.");
+    }
+
+    public void InsertStargates(List<Stargate> stargates)
+    {
+        using var connection = new SQLiteConnection($"Data Source={_dbPath};Version=3;");
+        connection.Open();
+
+        using var transaction = connection.BeginTransaction();
+
+        var insertSql = @"
+            INSERT INTO Stargates (
+                Id, SourceSystemId, DestinationSystemId, DestinationStargateId
+            ) VALUES (
+                @Id, @SourceSystemId, @DestinationSystemId, @DestinationStargateId
+            )";
+
+        using var command = new SQLiteCommand(insertSql, connection, transaction);
+        
+        command.Parameters.Add(new SQLiteParameter("@Id"));
+        command.Parameters.Add(new SQLiteParameter("@SourceSystemId"));
+        command.Parameters.Add(new SQLiteParameter("@DestinationSystemId"));
+        command.Parameters.Add(new SQLiteParameter("@DestinationStargateId"));
+
+        var inserted = 0;
+        foreach (var stargate in stargates)
+        {
+            command.Parameters["@Id"].Value = stargate.Id;
+            command.Parameters["@SourceSystemId"].Value = stargate.SourceSystemId;
+            command.Parameters["@DestinationSystemId"].Value = stargate.DestinationSystemId;
+            command.Parameters["@DestinationStargateId"].Value = (object?)stargate.DestinationStargateId ?? DBNull.Value;
+
+            command.ExecuteNonQuery();
+            inserted++;
+
+            if (inserted % 1000 == 0)
+            {
+                Console.WriteLine($"  Inserted {inserted} stargates...");
+            }
+        }
+
+        transaction.Commit();
+        Console.WriteLine($"Successfully inserted {inserted} stargates into database.");
     }
 }
 

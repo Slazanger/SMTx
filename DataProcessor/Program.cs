@@ -37,6 +37,7 @@ class Program
             // Initialize services
             var sdeDownloadService = new SdeDownloadService(dataExportPath);
             var jsonlParser = new JsonlParser();
+            var stargateParser = new StargateParser();
 
             // Step 1: Get/download latest SDE
             var sdeFolder = await sdeDownloadService.EnsureSdeDownloadedAsync();
@@ -46,13 +47,18 @@ class Program
             var solarSystems = await jsonlParser.ParseSolarSystemsAsync(sdeFolder);
             Console.WriteLine();
 
+            // Step 3: Process mapStargates.jsonl to extract stargate connections
+            var stargates = await stargateParser.ParseStargatesAsync(sdeFolder);
+            Console.WriteLine();
+
             // Step 4: Store results in database
             var buildNumber = Path.GetFileName(sdeFolder);
-            var dbPath = Path.Combine(sdeFolder, "solar_systems.db");
+            var dbPath = Path.Combine(sdeFolder, "universe.db");
             var databaseService = new DatabaseService(dbPath);
             
             databaseService.InitializeDatabase();
             databaseService.InsertSolarSystems(solarSystems);
+            databaseService.InsertStargates(stargates);
             Console.WriteLine();
 
             // Step 5: Display summary statistics
@@ -60,6 +66,8 @@ class Program
             Console.WriteLine($"Build Number: {buildNumber}");
             Console.WriteLine($"Total Solar Systems: {solarSystems.Count}");
             Console.WriteLine($"Systems with Names: {solarSystems.Count(s => !string.IsNullOrEmpty(s.Name))}");
+            Console.WriteLine($"Total Stargates: {stargates.Count}");
+            Console.WriteLine($"Unique Connections: {stargates.Select(s => new { s.SourceSystemId, s.DestinationSystemId }).Distinct().Count()}");
             Console.WriteLine($"Database Location: {dbPath}");
         }
         catch (Exception ex)
