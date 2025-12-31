@@ -58,17 +58,17 @@ public class RenderDatabaseReader
                     System.Diagnostics.Debug.WriteLine($"System {id} ({name}): JSON={renderCoordsJson}, Parsed: X={coords.X}, Y={coords.Y}, Z={coords.Z}");
                 }
 
-                // Transform coordinates:
-                // Screen X = World X (already correct)
-                // Screen Y = -World Z (flip Z so +z points up)
-                // World Y = depth (out of screen)
+                // Store 3D coordinates
+                // Note: The coordinate system in the database has:
+                // X = right, Y = depth (out of screen), Z = up (but we want +z up)
+                // So we'll use: WorldX = X, WorldY = Y, WorldZ = Z
                 systems.Add(new RenderSolarSystem
                 {
                     Id = id,
                     Name = name,
-                    ScreenX = coords.X,
-                    ScreenY = -coords.Z, // Flip Z axis
-                    WorldY = coords.Y
+                    WorldX = coords.X,
+                    WorldY = coords.Y,
+                    WorldZ = coords.Z
                 });
             }
             catch (JsonException ex)

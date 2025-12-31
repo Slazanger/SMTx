@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Specialized;
 using System.IO;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using SkiaSharp;
+using SMTx.Models;
 using SMTx.ViewModels;
 
 namespace SMTx.Views;
@@ -16,17 +19,25 @@ public partial class MapCanvas : UserControl
     private Bitmap? _bitmap;
     private bool _needsRedraw = true;
     private PixelSize _lastPixelSize;
+    private Point _lastMousePosition;
+    private bool _isDragging = false;
+    private IPointer? _capturedPointer;
 
     public MapCanvas()
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
         SizeChanged += OnSizeChanged;
+        
+        // Mouse controls for 3D rotation
+        PointerPressed += OnPointerPressed;
+        PointerMoved += OnPointerMoved;
+        PointerReleased += OnPointerReleased;
+        PointerWheelChanged += OnPointerWheelChanged;
     }
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
-        // Unsubscribe from previous view model
         if (_viewModel != null)
         {
             _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
@@ -55,13 +66,11 @@ public partial class MapCanvas : UserControl
     {
         if (e.PropertyName == nameof(MainViewModel.SolarSystems))
         {
-            // Unsubscribe from old collection
             if (_viewModel?.SolarSystems != null)
             {
                 _viewModel.SolarSystems.CollectionChanged -= OnSolarSystemsCollectionChanged;
             }
             
-            // Subscribe to new collection
             if (_viewModel?.SolarSystems != null)
             {
                 _viewModel.SolarSystems.CollectionChanged += OnSolarSystemsCollectionChanged;
@@ -69,9 +78,11 @@ public partial class MapCanvas : UserControl
         }
         
         if (e.PropertyName == nameof(MainViewModel.SolarSystems) ||
-            e.PropertyName == nameof(MainViewModel.OffsetX) ||
-            e.PropertyName == nameof(MainViewModel.OffsetY) ||
-            e.PropertyName == nameof(MainViewModel.Scale))
+            e.PropertyName == nameof(MainViewModel.CameraDistance) ||
+            e.PropertyName == nameof(MainViewModel.CameraRotationX) ||
+            e.PropertyName == nameof(MainViewModel.CameraRotationY) ||
+            e.PropertyName == nameof(MainViewModel.CameraRotationZ) ||
+            e.PropertyName == nameof(MainViewModel.FieldOfView))
         {
             _needsRedraw = true;
             InvalidateVisual();
@@ -94,6 +105,64 @@ public partial class MapCanvas : UserControl
         InvalidateVisual();
     }
 
+    private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            _isDragging = true;
+            _lastMousePosition = e.GetPosition(this);
+            _capturedPointer = e.Pointer;
+            e.Pointer.Capture(this);
+        }
+    }
+
+    private void OnPointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (_isDragging && _viewModel != null)
+        {
+            var currentPosition = e.GetPosition(this);
+            var deltaX = currentPosition.X - _lastMousePosition.X;
+            var deltaY = currentPosition.Y - _lastMousePosition.Y;
+
+            // Rotate camera based on mouse movement
+            _viewModel.CameraRotationY += deltaX * 0.01; // Horizontal rotation (yaw)
+            _viewModel.CameraRotationX += deltaY * 0.01; // Vertical rotation (pitch)
+
+            // Clamp pitch to avoid gimbal lock
+            _viewModel.CameraRotationX = Math.Max(-Math.PI / 2.0 + 0.1, Math.Min(Math.PI / 2.0 - 0.1, _viewModel.CameraRotationX));
+
+            _lastMousePosition = currentPosition;
+            _needsRedraw = true;
+            InvalidateVisual();
+        }
+    }
+
+    private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (_isDragging && _capturedPointer != null)
+        {
+            _isDragging = false;
+            _capturedPointer.Capture(null);
+            _capturedPointer = null;
+        }
+    }
+
+    private void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
+    {
+        if (_viewModel != null)
+        {
+            // Zoom in/out with mouse wheel
+            var zoomFactor = e.Delta.Y > 0 ? 1.1 : 0.9;
+            _viewModel.CameraDistance *= zoomFactor;
+            
+            // Clamp distance
+            _viewModel.CameraDistance = Math.Max(1000.0, Math.Min(100000.0, _viewModel.CameraDistance));
+            
+            _needsRedraw = true;
+            InvalidateVisual();
+        }
+    }
+
     public override void Render(DrawingContext context)
     {
         var bounds = Bounds;
@@ -102,7 +171,6 @@ public partial class MapCanvas : UserControl
 
         var pixelSize = new PixelSize((int)Math.Ceiling(bounds.Width), (int)Math.Ceiling(bounds.Height));
 
-        // Recreate bitmap if size changed or needs redraw
         if (_needsRedraw || _bitmap == null || _lastPixelSize != pixelSize)
         {
             RedrawBitmap(pixelSize);
@@ -125,12 +193,56 @@ public partial class MapCanvas : UserControl
             return;
 
         var canvas = surface.Canvas;
-
-        // Clear canvas with black background
         canvas.Clear(SKColors.Black);
 
         if (_viewModel?.SolarSystems != null && _viewModel.SolarSystems.Count > 0)
         {
+            // Project all 3D points to 2D and sort by depth
+            var allProjected = _viewModel.SolarSystems
+                .Select(system =>
+                {
+                    var (screenX, screenY, depth) = _viewModel.Project3DTo2D(
+                        system.WorldX, system.WorldY, system.WorldZ,
+                        pixelSize.Width, pixelSize.Height);
+                    
+                    return new
+                    {
+                        System = system,
+                        ScreenX = screenX,
+                        ScreenY = screenY,
+                        Depth = depth
+                    };
+                })
+                .Where(p => !double.IsNaN(p.ScreenX) && !double.IsNaN(p.ScreenY))
+                .ToList();
+
+            // Filter visible (wider range for debugging)
+            var projectedSystems = allProjected
+                .Where(p => p.ScreenX >= -pixelSize.Width * 2 && p.ScreenX <= pixelSize.Width * 3 &&
+                           p.ScreenY >= -pixelSize.Height * 2 && p.ScreenY <= pixelSize.Height * 3)
+                .OrderBy(p => p.Depth) // Sort by depth (back to front)
+                .ToList();
+
+            // Debug: Log first few projected points and all systems
+            System.Diagnostics.Debug.WriteLine($"Total systems: {_viewModel.SolarSystems.Count}, Projected: {allProjected.Count}, Visible: {projectedSystems.Count}");
+            if (allProjected.Count > 0)
+            {
+                var first = allProjected[0];
+                System.Diagnostics.Debug.WriteLine($"First system: World({first.System.WorldX:F2}, {first.System.WorldY:F2}, {first.System.WorldZ:F2}) -> Screen({first.ScreenX:F2}, {first.ScreenY:F2}), Depth={first.Depth:F2}");
+                System.Diagnostics.Debug.WriteLine($"Camera: Distance={_viewModel.CameraDistance:F2}, Center=({_viewModel.CameraCenterX:F2}, {_viewModel.CameraCenterY:F2}, {_viewModel.CameraCenterZ:F2})");
+                System.Diagnostics.Debug.WriteLine($"Camera Rot: X={_viewModel.CameraRotationX:F2}, Y={_viewModel.CameraRotationY:F2}, Z={_viewModel.CameraRotationZ:F2}");
+                
+                // Show min/max screen coordinates
+                if (allProjected.Count > 0)
+                {
+                    var minX = allProjected.Min(p => p.ScreenX);
+                    var maxX = allProjected.Max(p => p.ScreenX);
+                    var minY = allProjected.Min(p => p.ScreenY);
+                    var maxY = allProjected.Max(p => p.ScreenY);
+                    System.Diagnostics.Debug.WriteLine($"Screen bounds: X=[{minX:F2}, {maxX:F2}], Y=[{minY:F2}, {maxY:F2}], Canvas=[0, {pixelSize.Width}]x[0, {pixelSize.Height}]");
+                }
+            }
+
             // Create paint for solar systems
             var paint = new SKPaint
             {
@@ -139,25 +251,29 @@ public partial class MapCanvas : UserControl
                 Style = SKPaintStyle.Fill
             };
 
-            // Apply camera transform
-            canvas.Save();
-            canvas.Translate((float)_viewModel.OffsetX, (float)_viewModel.OffsetY);
-            canvas.Scale((float)_viewModel.Scale);
-
-            // Draw each solar system as a small circle
-            // Use a fixed radius in world space (will be scaled by the camera transform)
-            const float worldRadius = 10.0f; // 10 units in world space
-            
-            foreach (var system in _viewModel.SolarSystems)
+            // Draw each solar system
+            foreach (var projected in projectedSystems)
             {
-                var x = (float)system.ScreenX;
-                var y = (float)system.ScreenY;
-                
-                // Draw circle with fixed world-space radius
-                canvas.DrawCircle(x, y, worldRadius, paint);
+                // Calculate size based on depth (closer = larger)
+                var depthFactor = Math.Max(0.1, 1.0 - (projected.Depth + _viewModel.CameraDistance) / (_viewModel.CameraDistance * 2.0));
+                var radius = (float)(5.0 * depthFactor);
+
+                // Draw circle
+                if (projected.ScreenX >= 0 && projected.ScreenX <= pixelSize.Width &&
+                    projected.ScreenY >= 0 && projected.ScreenY <= pixelSize.Height)
+                {
+                    canvas.DrawCircle((float)projected.ScreenX, (float)projected.ScreenY, radius, paint);
+                }
             }
 
-            canvas.Restore();
+            // Debug: Draw center point
+            var centerPaint = new SKPaint
+            {
+                Color = SKColors.Red,
+                IsAntialias = true,
+                Style = SKPaintStyle.Fill
+            };
+            canvas.DrawCircle(pixelSize.Width / 2.0f, pixelSize.Height / 2.0f, 10.0f, centerPaint);
         }
         else
         {

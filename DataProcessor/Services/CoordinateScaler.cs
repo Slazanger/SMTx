@@ -91,24 +91,21 @@ public class CoordinateScaler
             return JsonSerializer.Serialize(new { x = 0.0, y = 0.0, z = 0.0 });
         }
 
-        double scaledX = 0.0;
-        double scaledY = 0.0;
-        double scaledZ = 0.0;
-
-        if (bounds.RangeX > 0)
+        // Find the maximum range across all axes to maintain uniform scale
+        var maxRange = Math.Max(Math.Max(bounds.RangeX, bounds.RangeY), bounds.RangeZ);
+        
+        if (maxRange <= 0)
         {
-            scaledX = (double)((x.Value - bounds.MinX) / bounds.RangeX * (decimal)RenderRange);
+            return JsonSerializer.Serialize(new { x = 0.0, y = 0.0, z = 0.0 });
         }
 
-        if (bounds.RangeY > 0)
-        {
-            scaledY = (double)((y.Value - bounds.MinY) / bounds.RangeY * (decimal)RenderRange);
-        }
+        // Calculate scale factor based on maximum range
+        var scaleFactor = (double)RenderRange / (double)maxRange;
 
-        if (bounds.RangeZ > 0)
-        {
-            scaledZ = (double)((z.Value - bounds.MinZ) / bounds.RangeZ * (decimal)RenderRange);
-        }
+        // Apply the same scale factor to all axes
+        var scaledX = (double)(x.Value - bounds.MinX) * scaleFactor;
+        var scaledY = (double)(y.Value - bounds.MinY) * scaleFactor;
+        var scaledZ = (double)(z.Value - bounds.MinZ) * scaleFactor;
 
         return JsonSerializer.Serialize(new { x = scaledX, y = scaledY, z = scaledZ });
     }
