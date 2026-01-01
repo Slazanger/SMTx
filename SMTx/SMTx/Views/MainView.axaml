@@ -27,8 +27,8 @@
     </Border>
 
     <!-- Map Canvas -->
-    <Grid Grid.Row="1">
-      <views:MapCanvas />
+    <Grid Grid.Row="1" x:Name="MapContainer">
+      <!-- Map renderer will be added programmatically based on platform -->
       
       <!-- Compass overlay (top-right corner) -->
       <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10" 

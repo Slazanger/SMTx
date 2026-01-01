@@ -14570,16 +14570,6 @@
     "linkType": "regular"
   },
   {
-    "sourceSystemId": 30000420,
-    "destinationSystemId": 30000421,
-    "linkType": "regular"
-  },
-  {
-    "sourceSystemId": 30000420,
-    "destinationSystemId": 30000422,
-    "linkType": "regular"
-  },
-  {
     "sourceSystemId": 30003750,
     "destinationSystemId": 30003751,
     "linkType": "regular"
@@ -14960,16 +14950,6 @@
     "linkType": "regular"
   },
   {
-    "sourceSystemId": 30000421,
-    "destinationSystemId": 30000422,
-    "linkType": "regular"
-  },
-  {
-    "sourceSystemId": 30000421,
-    "destinationSystemId": 30000423,
-    "linkType": "regular"
-  },
-  {
     "sourceSystemId": 30005218,
     "destinationSystemId": 30005219,
     "linkType": "regular"
@@ -15082,16 +15062,6 @@
   {
     "sourceSystemId": 30001141,
     "destinationSystemId": 30001144,
-    "linkType": "regular"
-  },
-  {
-    "sourceSystemId": 30000427,
-    "destinationSystemId": 30000428,
-    "linkType": "regular"
-  },
-  {
-    "sourceSystemId": 30000427,
-    "destinationSystemId": 30000429,
     "linkType": "regular"
   },
   {
@@ -15353,26 +15323,6 @@
     "sourceSystemId": 30005035,
     "destinationSystemId": 30005036,
     "linkType": "constellation"
-  },
-  {
-    "sourceSystemId": 30000428,
-    "destinationSystemId": 30000429,
-    "linkType": "regular"
-  },
-  {
-    "sourceSystemId": 30000428,
-    "destinationSystemId": 30000430,
-    "linkType": "regular"
-  },
-  {
-    "sourceSystemId": 30000428,
-    "destinationSystemId": 30000431,
-    "linkType": "regular"
-  },
-  {
-    "sourceSystemId": 30000428,
-    "destinationSystemId": 30000432,
-    "linkType": "regular"
   },
   {
     "sourceSystemId": 30001857,
@@ -15895,16 +15845,6 @@
     "linkType": "regular"
   },
   {
-    "sourceSystemId": 30000430,
-    "destinationSystemId": 30000431,
-    "linkType": "regular"
-  },
-  {
-    "sourceSystemId": 30000430,
-    "destinationSystemId": 30000432,
-    "linkType": "regular"
-  },
-  {
     "sourceSystemId": 30003403,
     "destinationSystemId": 30003405,
     "linkType": "regular"
@@ -15955,11 +15895,6 @@
     "linkType": "regular"
   },
   {
-    "sourceSystemId": 30000422,
-    "destinationSystemId": 30000423,
-    "linkType": "regular"
-  },
-  {
     "sourceSystemId": 30003077,
     "destinationSystemId": 30003078,
     "linkType": "regular"
@@ -15990,11 +15925,6 @@
     "linkType": "regular"
   },
   {
-    "sourceSystemId": 30000423,
-    "destinationSystemId": 30000424,
-    "linkType": "regular"
-  },
-  {
     "sourceSystemId": 30002403,
     "destinationSystemId": 30002404,
     "linkType": "regular"
@@ -16007,11 +15937,6 @@
   {
     "sourceSystemId": 30002023,
     "destinationSystemId": 30002024,
-    "linkType": "regular"
-  },
-  {
-    "sourceSystemId": 30000424,
-    "destinationSystemId": 30000425,
     "linkType": "regular"
   },
   {
@@ -16097,11 +16022,6 @@
   {
     "sourceSystemId": 30001238,
     "destinationSystemId": 30001239,
-    "linkType": "regular"
-  },
-  {
-    "sourceSystemId": 30000425,
-    "destinationSystemId": 30000426,
     "linkType": "regular"
   },
   {

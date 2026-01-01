@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using System.Data.SQLite;
+using Microsoft.Data.Sqlite;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -26,11 +26,11 @@ public class SqliteDataService : IDataService
             return Task.FromResult(systems);
         }
 
-        using var connection = new SQLiteConnection($"Data Source={_dbPath};Version=3;");
+        using var connection = new SqliteConnection($"Data Source={_dbPath}");
         connection.Open();
 
         var query = "SELECT Id, Name, RenderCoords FROM RenderSolarSystems";
-        using var command = new SQLiteCommand(query, connection);
+        using var command = new SqliteCommand(query, connection);
         using var reader = command.ExecuteReader();
 
         while (reader.Read())
@@ -81,11 +81,11 @@ public class SqliteDataService : IDataService
             return Task.FromResult(links);
         }
 
-        using var connection = new SQLiteConnection($"Data Source={_dbPath};Version=3;");
+        using var connection = new SqliteConnection($"Data Source={_dbPath}");
         connection.Open();
 
         var query = "SELECT SourceSystemId, DestinationSystemId, LinkType FROM StargateLinks";
-        using var command = new SQLiteCommand(query, connection);
+        using var command = new SqliteCommand(query, connection);
         using var reader = command.ExecuteReader();
 
         while (reader.Read())

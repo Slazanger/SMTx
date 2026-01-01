@@ -4,6 +4,7 @@
     <OutputType>Exe</OutputType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <WasmBuildNative>true</WasmBuildNative>
+    <DefineConstants>$(DefineConstants);NET8_0_BROWSER</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
