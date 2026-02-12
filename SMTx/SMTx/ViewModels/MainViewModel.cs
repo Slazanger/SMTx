@@ -26,10 +26,28 @@ public class MainViewModel : ViewModelBase
     private double _cameraCenterY = 0.0;
     private double _cameraCenterZ = 0.0;
 
-    public double CameraCenterX => _cameraCenterX;
-    public double CameraCenterY => _cameraCenterY;
-    public double CameraCenterZ => _cameraCenterZ;
+    public double CameraCenterX
+    {
+        get => _cameraCenterX;
+        set => this.RaiseAndSetIfChanged(ref _cameraCenterX, value);
+    }
+    
+    public double CameraCenterY
+    {
+        get => _cameraCenterY;
+        set => this.RaiseAndSetIfChanged(ref _cameraCenterY, value);
+    }
+    
+    public double CameraCenterZ
+    {
+        get => _cameraCenterZ;
+        set => this.RaiseAndSetIfChanged(ref _cameraCenterZ, value);
+    }
     private double _fieldOfView = Math.PI / 4.0; // 45 degrees
+    
+    // Canvas size for 1:1 zoom calculation
+    private double _canvasWidth = 800.0;
+    private double _canvasHeight = 600.0;
 
     public ICommand ResetViewCommand { get; }
 
@@ -227,14 +245,78 @@ public class MainViewModel : ViewModelBase
 
     public void ResetView()
     {
-        CalculateInitialCamera();
+        // Always reset to top-down view
+        CameraRotationX = -Math.PI / 2.0; // -90 degrees pitch (look straight down)
+        CameraRotationY = 0.0; // No yaw (north at top)
+        CameraRotationZ = 0.0; // No roll
+        
+        // Recalculate camera position and zoom if systems are loaded
+        if (_solarSystems.Count > 0)
+        {
+            CalculateInitialCamera();
+        }
     }
 
     public void UpdateCanvasSize(double width, double height)
     {
         // Canvas size is used in the projection calculation
         // This method can be used to adjust FOV if needed
+        _canvasWidth = width;
+        _canvasHeight = height;
     }
+    
+    public void SetZoomToMaximum()
+    {
+        // Reset to top-down view and recalculate camera position/zoom (same as Reset View)
+        ResetView();
+    }
+    
+    public void SetZoomTo1To1(double canvasWidth, double canvasHeight)
+    {
+        // For 1:1 scale, set CameraDistance to match the smaller canvas dimension
+        // This ensures 1 world unit = 1 pixel on screen
+        CameraDistance = Math.Min(canvasWidth, canvasHeight);
+    }
+    
+    public void SetZoomTo1To1()
+    {
+        // Use stored canvas size
+        SetZoomTo1To1(_canvasWidth, _canvasHeight);
+    }
+    
+    // Pan camera in screen space (relative to current view direction)
+    public void PanCamera(double deltaX, double deltaY)
+    {
+        // Convert screen-space delta to world-space movement
+        // The pan amount should be proportional to the current zoom level
+        // Use a fraction of the camera distance as the pan speed
+        var panSpeed = _cameraDistance * 0.001; // Adjust this multiplier to control pan sensitivity
+        
+        // Calculate pan direction in world space based on current rotation
+        // For top-down view (rotationX = -PI/2), we want:
+        // - deltaX to move in X direction (east/west)
+        // - deltaY to move in Z direction (north/south)
+        
+        // Get rotation angles
+        var cosY = Math.Cos(-_cameraRotationY);
+        var sinY = Math.Sin(-_cameraRotationY);
+        
+        // Calculate world-space movement
+        // For a top-down view, screen X maps to world X (east/west), screen Y maps to world Z (north/south)
+        // We need to rotate this based on the camera's yaw rotation
+        var worldDeltaX = deltaX * cosY - deltaY * sinY;
+        var worldDeltaZ = deltaX * sinY + deltaY * cosY;
+        
+        // Apply pan speed
+        CameraCenterX += worldDeltaX * panSpeed;
+        CameraCenterZ += worldDeltaZ * panSpeed;
+    }
+    
+    // Pan camera in specific directions (for button controls)
+    public void PanCameraNorth(double amount = 1.0) => PanCamera(0, -amount);
+    public void PanCameraSouth(double amount = 1.0) => PanCamera(0, amount);
+    public void PanCameraEast(double amount = 1.0) => PanCamera(amount, 0);
+    public void PanCameraWest(double amount = 1.0) => PanCamera(-amount, 0);
 
     // Helper method to project 3D point to 2D screen coordinates
     public (double screenX, double screenY, double depth) Project3DTo2D(double worldX, double worldY, double worldZ, double canvasWidth, double canvasHeight)

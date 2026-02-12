@@ -78,6 +78,10 @@ public static partial class WebGLInterop
         PointerReleased += OnPointerReleased;
         PointerWheelChanged += OnPointerWheelChanged;
         
+        // Keyboard controls for panning
+        KeyDown += OnKeyDown;
+        Focusable = true; // Allow control to receive keyboard focus
+        
         // Initialize WebGL when control is attached to visual tree (browser only)
         if (OperatingSystem.IsBrowser())
         {
@@ -627,6 +631,69 @@ public static partial class WebGLInterop
             {
                 InvalidateVisual();
             }
+        }
+    }
+
+    private void OnKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (_viewModel == null) return;
+        
+        var panAmount = 10.0; // Pan distance per key press
+        
+        switch (e.Key)
+        {
+            case Key.Up:
+            case Key.W:
+                _viewModel.PanCameraNorth(panAmount);
+                e.Handled = true;
+                if (OperatingSystem.IsBrowser())
+                {
+                    _ = RenderToWebGLAsync();
+                }
+                else
+                {
+                    InvalidateVisual();
+                }
+                break;
+            case Key.Down:
+            case Key.S:
+                _viewModel.PanCameraSouth(panAmount);
+                e.Handled = true;
+                if (OperatingSystem.IsBrowser())
+                {
+                    _ = RenderToWebGLAsync();
+                }
+                else
+                {
+                    InvalidateVisual();
+                }
+                break;
+            case Key.Left:
+            case Key.A:
+                _viewModel.PanCameraWest(panAmount);
+                e.Handled = true;
+                if (OperatingSystem.IsBrowser())
+                {
+                    _ = RenderToWebGLAsync();
+                }
+                else
+                {
+                    InvalidateVisual();
+                }
+                break;
+            case Key.Right:
+            case Key.D:
+                _viewModel.PanCameraEast(panAmount);
+                e.Handled = true;
+                if (OperatingSystem.IsBrowser())
+                {
+                    _ = RenderToWebGLAsync();
+                }
+                else
+                {
+                    InvalidateVisual();
+                }
+                break;
         }
     }
 

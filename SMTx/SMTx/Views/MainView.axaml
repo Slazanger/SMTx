@@ -29,12 +29,7 @@
     <!-- Map Canvas -->
     <Grid Grid.Row="1" x:Name="MapContainer">
       <!-- Map renderer will be added programmatically based on platform -->
-      
-      <!-- Compass overlay (top-right corner) -->
-      <Border HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10" 
-              Background="#80000000" CornerRadius="5" Padding="5">
-        <views:Compass Width="120" Height="120" DataContext="{Binding}" />
-      </Border>
+      <!-- Overlays (ZoomControl and Compass) will be added programmatically after map canvas -->
     </Grid>
   </Grid>
 </UserControl>

@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Linq;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Layout;
+using Avalonia.Media;
 
 namespace SMTx.Views;
 
@@ -69,5 +72,51 @@ public partial class MainView : UserControl
             mapContainer.Children.Add(new MapCanvas());
             System.Diagnostics.Debug.WriteLine("MainView: Using MapCanvas for desktop/mobile platform");
         }
+        
+        // Add overlay controls after map canvas to ensure they render on top
+        var zoomControlBorder = new Border
+        {
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(10),
+            Background = new SolidColorBrush(Color.FromArgb(128, 0, 0, 0)),
+            CornerRadius = new CornerRadius(5),
+            Padding = new Thickness(5)
+        };
+        var zoomControl = new ZoomControl { DataContext = this.DataContext };
+        zoomControlBorder.Child = zoomControl;
+        mapContainer.Children.Add(zoomControlBorder);
+        
+        var compassBorder = new Border
+        {
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(10),
+            Background = new SolidColorBrush(Color.FromArgb(128, 0, 0, 0)),
+            CornerRadius = new CornerRadius(5),
+            Padding = new Thickness(5)
+        };
+        var compass = new Compass 
+        { 
+            Width = 120, 
+            Height = 120, 
+            DataContext = this.DataContext 
+        };
+        compassBorder.Child = compass;
+        mapContainer.Children.Add(compassBorder);
+        
+        // Add directional pad for camera panning (bottom-left corner)
+        var directionalPadBorder = new Border
+        {
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Bottom,
+            Margin = new Thickness(10),
+            Background = new SolidColorBrush(Color.FromArgb(128, 0, 0, 0)),
+            CornerRadius = new CornerRadius(5),
+            Padding = new Thickness(5)
+        };
+        var directionalPad = new DirectionalPad { DataContext = this.DataContext };
+        directionalPadBorder.Child = directionalPad;
+        mapContainer.Children.Add(directionalPadBorder);
     }
 }

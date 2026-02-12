@@ -1,0 +1,37 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:SMTx.ViewModels"
+             x:Class="SMTx.Views.DirectionalPad"
+             x:DataType="vm:MainViewModel">
+  <Grid Width="120" Height="120">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="*" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="*" />
+    </Grid.RowDefinitions>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="*" />
+      <ColumnDefinition Width="*" />
+      <ColumnDefinition Width="*" />
+    </Grid.ColumnDefinitions>
+    
+    <!-- North -->
+    <Button Grid.Row="0" Grid.Column="1" Content="↑" 
+            Click="OnPanNorth" Padding="5" FontSize="16" />
+    
+    <!-- West -->
+    <Button Grid.Row="1" Grid.Column="0" Content="←" 
+            Click="OnPanWest" Padding="5" FontSize="16" />
+    
+    <!-- Center (empty) -->
+    <Grid Grid.Row="1" Grid.Column="1" />
+    
+    <!-- East -->
+    <Button Grid.Row="1" Grid.Column="2" Content="→" 
+            Click="OnPanEast" Padding="5" FontSize="16" />
+    
+    <!-- South -->
+    <Button Grid.Row="2" Grid.Column="1" Content="↓" 
+            Click="OnPanSouth" Padding="5" FontSize="16" />
+  </Grid>
+</UserControl>

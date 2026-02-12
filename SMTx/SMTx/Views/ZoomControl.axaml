@@ -1,0 +1,17 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:SMTx.ViewModels"
+             x:Class="SMTx.Views.ZoomControl"
+             x:DataType="vm:MainViewModel">
+  <StackPanel Orientation="Vertical" Spacing="5">
+    <Button Content="Max" Click="OnSetZoomToMaximum" 
+            Padding="8,4" MinWidth="50" />
+    <Slider Orientation="Vertical" 
+            Minimum="1000" Maximum="100000"
+            Value="{Binding CameraDistance, Mode=TwoWay}"
+            Width="30" Height="150"
+            TickFrequency="10000" IsSnapToTickEnabled="False" />
+    <Button Content="1:1" Click="OnSetZoomTo1To1" 
+            Padding="8,4" MinWidth="50" />
+  </StackPanel>
+</UserControl>
