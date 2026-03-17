@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
@@ -83,7 +83,7 @@ public partial class MainView : UserControl
             CornerRadius = new CornerRadius(5),
             Padding = new Thickness(5)
         };
-        var zoomControl = new ZoomControl { DataContext = this.DataContext };
+        var zoomControl = new ZoomControl();
         zoomControlBorder.Child = zoomControl;
         mapContainer.Children.Add(zoomControlBorder);
         
@@ -99,8 +99,7 @@ public partial class MainView : UserControl
         var compass = new Compass 
         { 
             Width = 120, 
-            Height = 120, 
-            DataContext = this.DataContext 
+            Height = 120
         };
         compassBorder.Child = compass;
         mapContainer.Children.Add(compassBorder);
@@ -115,7 +114,7 @@ public partial class MainView : UserControl
             CornerRadius = new CornerRadius(5),
             Padding = new Thickness(5)
         };
-        var directionalPad = new DirectionalPad { DataContext = this.DataContext };
+        var directionalPad = new DirectionalPad();
         directionalPadBorder.Child = directionalPad;
         mapContainer.Children.Add(directionalPadBorder);
     }

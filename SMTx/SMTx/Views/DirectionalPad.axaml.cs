@@ -13,9 +13,21 @@ public partial class DirectionalPad : UserControl
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
+        AttachedToVisualTree += OnAttachedToVisualTree;
+    }
+
+    private void OnAttachedToVisualTree(object? sender, Avalonia.VisualTreeAttachmentEventArgs e)
+    {
+        // When attached to the tree, we may inherit DataContext from parent; refresh _viewModel
+        UpdateViewModelFromDataContext();
     }
 
     private void OnDataContextChanged(object? sender, EventArgs e)
+    {
+        UpdateViewModelFromDataContext();
+    }
+
+    private void UpdateViewModelFromDataContext()
     {
         if (_viewModel != null)
         {
