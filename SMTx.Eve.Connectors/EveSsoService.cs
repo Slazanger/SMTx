@@ -1,6 +1,7 @@
 using System.Net.Http;
 using System.Text.Json;
 using EVEStandard;
+using EVEStandard.Enumerations;
 using EVEStandard.Models.SSO;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -17,6 +18,7 @@ public sealed class EveSsoService
     private readonly IOptions<EveEsiOptions> _esiOptions;
     private readonly ICharacterSessionStore _store;
     private readonly ILogger<EveSsoService> _logger;
+    private readonly HttpClient _http;
     private readonly IEveAuthorizationUiCoordinator? _uiCoordinator;
     private readonly IBrowserOAuthPkceStore? _browserPkce;
     private readonly bool _useBrowserSplitFlow;
@@ -29,6 +31,7 @@ public sealed class EveSsoService
         IOptions<EveEsiOptions> esiOptions,
         ICharacterSessionStore store,
         ILogger<EveSsoService> logger,
+        HttpClient http,
         IEveAuthorizationUiCoordinator? uiCoordinator = null,
         IBrowserOAuthPkceStore? browserPkce = null,
         bool useBrowserSplitFlow = false)
@@ -37,6 +40,10 @@ public sealed class EveSsoService
         _esiOptions = esiOptions;
         _store = store;
         _logger = logger;
+        _http = http;
+        _http.Timeout = esiOptions.Value.HttpTimeout;
+        if (!string.IsNullOrWhiteSpace(esiOptions.Value.UserAgent))
+            _http.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", esiOptions.Value.UserAgent.Trim());
         _uiCoordinator = uiCoordinator;
         _browserPkce = browserPkce;
         _useBrowserSplitFlow = useBrowserSplitFlow;
@@ -132,11 +139,10 @@ public sealed class EveSsoService
         if (!query.TryGetValue("state", out var state) || state != expectedState)
             throw new InvalidOperationException("OAuth callback state mismatch.");
 
-        var sso = CreateSso();
         AccessTokenDetails token;
         try
         {
-            token = await sso.VerifyAuthorizationForPKCEAuthAsync(code, verifier).ConfigureAwait(false);
+            token = await ExchangePkceAuthorizationCodeAsync(code, verifier, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -144,9 +150,7 @@ public sealed class EveSsoService
             throw;
         }
 
-        if (string.IsNullOrEmpty(token.AccessToken))
-            throw new InvalidOperationException("Token response missing access_token.");
-
+        var sso = CreateSso();
         var details = await sso.GetCharacterDetailsAsync(token.AccessToken).ConfigureAwait(false);
 
         var scopesJoined = details.Scopes != null && details.Scopes.Count > 0
@@ -201,12 +205,11 @@ public sealed class EveSsoService
         if (string.IsNullOrEmpty(session.RefreshToken))
             throw new InvalidOperationException("No refresh token.");
 
-        var sso = CreateSso();
         var scopes = _oauthOptions.Value.Scopes?.Count > 0 ? _oauthOptions.Value.Scopes : null;
         AccessTokenDetails token;
         try
         {
-            token = await sso.GetNewPKCEAccessAndRefreshTokenAsync(session.RefreshToken, scopes).ConfigureAwait(false);
+            token = await ExchangePkceRefreshAsync(session.RefreshToken, scopes, cancellationToken).ConfigureAwait(false);
         }
         catch (HttpRequestException ex)
         {
@@ -240,6 +243,78 @@ public sealed class EveSsoService
     }
 
     public CharacterSessionRecord? GetSession(long characterId) => _store.Get(characterId);
+
+    private Uri GetTokenEndpointUri()
+    {
+        var url = _esiOptions.Value.DataSource switch
+        {
+            DataSource.Tranquility => "https://login.eveonline.com/v2/oauth/token",
+            DataSource.Serenity => "https://login.evepc.163.com/v2/oauth/token",
+            _ => throw new ArgumentOutOfRangeException(nameof(EveEsiOptions.DataSource))
+        };
+        return new Uri(url);
+    }
+
+    private async Task<AccessTokenDetails> ExchangePkceAuthorizationCodeAsync(string code, string codeVerifier, CancellationToken cancellationToken)
+    {
+        var oauth = _oauthOptions.Value;
+        var form = new List<KeyValuePair<string, string>>
+        {
+            new("grant_type", "authorization_code"),
+            new("code", code),
+            new("client_id", oauth.ClientId),
+            new("code_verifier", codeVerifier),
+            new("redirect_uri", oauth.RedirectUri.Trim()),
+        };
+        using var content = new FormUrlEncodedContent(form);
+        using var request = new HttpRequestMessage(HttpMethod.Post, GetTokenEndpointUri()) { Content = content };
+        using var response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        return await ReadAccessTokenResponseAsync(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<AccessTokenDetails> ExchangePkceRefreshAsync(string refreshToken, IReadOnlyList<string>? scopes, CancellationToken cancellationToken)
+    {
+        var oauth = _oauthOptions.Value;
+        var form = new List<KeyValuePair<string, string>>
+        {
+            new("grant_type", "refresh_token"),
+            new("refresh_token", refreshToken),
+            new("client_id", oauth.ClientId),
+        };
+        if (scopes is { Count: > 0 })
+            form.Add(new KeyValuePair<string, string>("scope", string.Join(' ', scopes)));
+
+        using var content = new FormUrlEncodedContent(form);
+        using var request = new HttpRequestMessage(HttpMethod.Post, GetTokenEndpointUri()) { Content = content };
+        using var response = await _http.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        return await ReadAccessTokenResponseAsync(response, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<AccessTokenDetails> ReadAccessTokenResponseAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("EVE SSO token HTTP {Status}: {Body}", (int)response.StatusCode, body);
+            throw new HttpRequestException($"EVE SSO token request failed ({(int)response.StatusCode}): {body}");
+        }
+
+        AccessTokenDetails? token;
+        try
+        {
+            token = JsonSerializer.Deserialize<AccessTokenDetails>(body);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "EVE SSO token JSON parse failed. Body: {Body}", body);
+            throw;
+        }
+
+        if (token == null || string.IsNullOrEmpty(token.AccessToken))
+            throw new JsonException("EVE SSO token response missing access_token.");
+
+        return token;
+    }
 
     private static Dictionary<string, string> ParseQuery(string query)
     {

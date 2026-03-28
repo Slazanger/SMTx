@@ -1,3 +1,4 @@
+using System.Net.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -41,6 +42,7 @@ public static class EveRuntime
         LoggerFactory = Microsoft.Extensions.Logging.LoggerFactory.Create(b => b.AddDebug().SetMinimumLevel(LogLevel.Warning));
         var logSso = LoggerFactory.CreateLogger<EveSsoService>();
         var logEsi = LoggerFactory.CreateLogger<EsiClientFacade>();
+        var ssoHttp = new HttpClient();
 
         if (isBrowser)
         {
@@ -48,7 +50,7 @@ public static class EveRuntime
             Store = new BrowserCharacterSessionStore();
             var pkce = new BrowserOAuthPkceStore();
             await Store.LoadAsync(cancellationToken).ConfigureAwait(false);
-            Sso = new EveSsoService(Options.Create(oauth), Options.Create(esi), Store, logSso, uiCoordinator: null, pkce, useBrowserSplitFlow: true);
+            Sso = new EveSsoService(Options.Create(oauth), Options.Create(esi), Store, logSso, ssoHttp, uiCoordinator: null, pkce, useBrowserSplitFlow: true);
             Esi = new EsiClientFacade(Options.Create(esi), Store, Sso, logEsi, LoggerFactory);
 
             var start = GetBrowserStartUri();
@@ -83,7 +85,7 @@ public static class EveRuntime
                 return;
             }
 
-            Sso = new EveSsoService(Options.Create(oauth), Options.Create(esi), Store, logSso, ui, null, useBrowserSplitFlow: false);
+            Sso = new EveSsoService(Options.Create(oauth), Options.Create(esi), Store, logSso, ssoHttp, ui, null, useBrowserSplitFlow: false);
             Esi = new EsiClientFacade(Options.Create(esi), Store, Sso, logEsi, LoggerFactory);
             await Sso.RestoreSessionsAsync(cancellationToken).ConfigureAwait(false);
 #endif
