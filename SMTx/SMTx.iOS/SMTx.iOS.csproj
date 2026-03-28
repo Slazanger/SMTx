@@ -1,16 +1,25 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0-ios</TargetFramework>
-    <SupportedOSPlatformVersion>13.0</SupportedOSPlatformVersion>
+    <!-- net9.0-ios: matches Avalonia.iOS 11.x NuGet TFM; .NET SDK 10 maps net8.0-ios to net8.0-ios1.0 for restore (NU1202). -->
+    <TargetFramework>net9.0-ios</TargetFramework>
+    <SupportedOSPlatformVersion>17.0</SupportedOSPlatformVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Avalonia.iOS" Version="$(AvaloniaVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <BundleResource Include="appsettings.json" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\SMTx\SMTx.csproj" />
+    <ProjectReference Include="..\..\SMTx.Eve.Connectors\SMTx.Eve.Connectors.csproj" />
   </ItemGroup>
 </Project>

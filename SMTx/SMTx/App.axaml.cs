@@ -1,10 +1,13 @@
-﻿using System;
+using System;
 using System.IO;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
+using Avalonia.Threading;
+using SMTx.Eve;
 using SMTx.Services;
 using SMTx.ViewModels;
 using SMTx.Views;
@@ -24,169 +27,117 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        IDataService dataService;
-
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-        {
-            // Desktop: Use SQLite
-            dataService = CreateDesktopDataService();
-            desktop.MainWindow = new MainWindow
-            {
-                DataContext = new MainViewModel(dataService)
-            };
-        }
+            _ = StartDesktopWithEveAsync(desktop);
         else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
-        {
-            // Check if we're on Android or Browser
-            bool isAndroid = OperatingSystem.IsAndroid();
-            
-            if (isAndroid)
-            {
-                // Android: Use SQLite
-                System.Diagnostics.Debug.WriteLine("=== Android initialization started ===");
-                Console.WriteLine("=== Android initialization started ===");
-                
-                try
-                {
-                    dataService = CreateAndroidDataService();
-                    System.Diagnostics.Debug.WriteLine("Creating MainViewModel...");
-                    Console.WriteLine("Creating MainViewModel...");
-                    
-                    var viewModel = new MainViewModel(dataService);
-                    System.Diagnostics.Debug.WriteLine("MainViewModel created, creating MainView...");
-                    Console.WriteLine("MainViewModel created, creating MainView...");
-                    
-                    var mainView = new MainView
-                    {
-                        DataContext = viewModel
-                    };
-                    System.Diagnostics.Debug.WriteLine("MainView created, setting MainView...");
-                    Console.WriteLine("MainView created, setting MainView...");
-                    
-                    singleViewPlatform.MainView = mainView;
-                    System.Diagnostics.Debug.WriteLine("=== MainView set successfully ===");
-                    Console.WriteLine("=== MainView set successfully ===");
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"=== ERROR initializing Android MainView ===");
-                    System.Diagnostics.Debug.WriteLine($"Message: {ex.Message}");
-                    System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-                    Console.WriteLine($"=== ERROR initializing Android MainView ===");
-                    Console.WriteLine($"Message: {ex.Message}");
-                    Console.WriteLine($"Stack trace: {ex.StackTrace}");
-                    
-                    // Fallback to JSON on error
-                    dataService = new JsonDataService();
-                    singleViewPlatform.MainView = new MainView
-                    {
-                        DataContext = new MainViewModel(dataService)
-                    };
-                }
-            }
-            else
-            {
-                // Browser: Use JSON
-                System.Diagnostics.Debug.WriteLine("=== Browser initialization started ===");
-                Console.WriteLine("=== Browser initialization started ===");
-                
-                try
-                {
-                    // Create HttpClient with base address for browser
-                    var httpClient = new System.Net.Http.HttpClient();
-                    
-#pragma warning disable CA1416 // This code only runs in browser platform
-                    try
-                    {
-                        // Get the current location from JavaScript
-                        using var location = System.Runtime.InteropServices.JavaScript.JSHost.GlobalThis.GetPropertyAsJSObject("location");
-                        
-                        if (location != null)
-                        {
-                            var origin = location.GetPropertyAsString("origin");
-                            if (!string.IsNullOrEmpty(origin))
-                            {
-                                httpClient.BaseAddress = new Uri(origin + "/", UriKind.Absolute);
-                                System.Diagnostics.Debug.WriteLine($"Set BaseAddress to: {httpClient.BaseAddress}");
-                                Console.WriteLine($"Set BaseAddress to: {httpClient.BaseAddress}");
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Could not get location from JavaScript: {ex.Message}");
-                        Console.WriteLine($"Could not get location from JavaScript: {ex.Message}");
-                        httpClient.BaseAddress = new Uri("http://localhost/", UriKind.Absolute);
-                    }
-#pragma warning restore CA1416
-                    
-                    dataService = new JsonDataService("", httpClient);
-                    System.Diagnostics.Debug.WriteLine("Creating MainViewModel...");
-                    Console.WriteLine("Creating MainViewModel...");
-                    
-                    var viewModel = new MainViewModel(dataService);
-                    System.Diagnostics.Debug.WriteLine("MainViewModel created, creating MainView...");
-                    Console.WriteLine("MainViewModel created, creating MainView...");
-                    
-                    var mainView = new MainView
-                    {
-                        DataContext = viewModel
-                    };
-                    System.Diagnostics.Debug.WriteLine("MainView created, setting MainView...");
-                    Console.WriteLine("MainView created, setting MainView...");
-                    
-                    singleViewPlatform.MainView = mainView;
-                    System.Diagnostics.Debug.WriteLine("=== MainView set successfully ===");
-                    Console.WriteLine("=== MainView set successfully ===");
-                }
-                catch (Exception ex)
-                {
-                    var errorDetails = new System.Text.StringBuilder();
-                    errorDetails.AppendLine($"=== ERROR initializing MainView ===");
-                    errorDetails.AppendLine($"Message: {ex.Message}");
-                    errorDetails.AppendLine($"Type: {ex.GetType().FullName}");
-                    errorDetails.AppendLine($"Stack trace: {ex.StackTrace}");
-                    
-                    System.Diagnostics.Debug.WriteLine(errorDetails.ToString());
-                    Console.WriteLine(errorDetails.ToString());
-                    
-                    Exception? inner = ex.InnerException;
-                    int depth = 0;
-                    while (inner != null && depth < 5)
-                    {
-                        errorDetails.AppendLine($"\nInner exception #{depth + 1}:");
-                        errorDetails.AppendLine($"  Type: {inner.GetType().FullName}");
-                        errorDetails.AppendLine($"  Message: {inner.Message}");
-                        errorDetails.AppendLine($"  Stack: {inner.StackTrace}");
-                        
-                        System.Diagnostics.Debug.WriteLine($"Inner exception #{depth + 1}: {inner.GetType().FullName} - {inner.Message}");
-                        Console.WriteLine($"Inner exception #{depth + 1}: {inner.GetType().FullName} - {inner.Message}");
-                        
-                        inner = inner.InnerException;
-                        depth++;
-                    }
-                    
-                    // Create a simple error view as fallback
-                    singleViewPlatform.MainView = new Border
-                    {
-                        Background = Brushes.DarkRed,
-                        Child = new ScrollViewer
-                        {
-                            Content = new TextBlock
-                            {
-                                Text = errorDetails.ToString(),
-                                TextWrapping = TextWrapping.Wrap,
-                                Margin = new Thickness(20),
-                                Foreground = Brushes.White,
-                                FontFamily = new Avalonia.Media.FontFamily("Consolas, monospace")
-                            }
-                        }
-                    };
-                }
-            }
-        }
+            _ = OperatingSystem.IsAndroid()
+                ? StartAndroidWithEveAsync(singleViewPlatform)
+                : StartBrowserWithEveAsync(singleViewPlatform);
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static async Task StartDesktopWithEveAsync(IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        await EveRuntime.InitializeAsync(false).ConfigureAwait(true);
+        var dataService = CreateDesktopDataService();
+        var viewModel = new MainViewModel(dataService);
+        viewModel.RefreshEveCharacters();
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            desktop.MainWindow = new MainWindow { DataContext = viewModel };
+        });
+    }
+
+    private static async Task StartAndroidWithEveAsync(ISingleViewApplicationLifetime singleViewPlatform)
+    {
+        System.Diagnostics.Debug.WriteLine("=== Android initialization started ===");
+        Console.WriteLine("=== Android initialization started ===");
+
+        try
+        {
+            await EveRuntime.InitializeAsync(false).ConfigureAwait(true);
+            var dataService = CreateAndroidDataService();
+            var viewModel = new MainViewModel(dataService);
+            viewModel.RefreshEveCharacters();
+            var mainView = new MainView { DataContext = viewModel };
+            await Dispatcher.UIThread.InvokeAsync(() => singleViewPlatform.MainView = mainView);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"=== ERROR initializing Android MainView ===\n{ex}");
+            Console.WriteLine($"=== ERROR initializing Android MainView ===\n{ex}");
+            var dataService = new JsonDataService();
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                singleViewPlatform.MainView = new MainView { DataContext = new MainViewModel(dataService) };
+            });
+        }
+    }
+
+    private static async Task StartBrowserWithEveAsync(ISingleViewApplicationLifetime singleViewPlatform)
+    {
+        System.Diagnostics.Debug.WriteLine("=== Browser initialization started ===");
+        Console.WriteLine("=== Browser initialization started ===");
+
+        try
+        {
+            await EveRuntime.InitializeAsync(true).ConfigureAwait(true);
+
+            var httpClient = new System.Net.Http.HttpClient();
+#pragma warning disable CA1416
+            try
+            {
+                using var location = System.Runtime.InteropServices.JavaScript.JSHost.GlobalThis.GetPropertyAsJSObject("location");
+                if (location != null)
+                {
+                    var origin = location.GetPropertyAsString("origin");
+                    if (!string.IsNullOrEmpty(origin))
+                        httpClient.BaseAddress = new Uri(origin + "/", UriKind.Absolute);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Could not get location from JavaScript: {ex.Message}");
+                httpClient.BaseAddress = new Uri("http://localhost/", UriKind.Absolute);
+            }
+#pragma warning restore CA1416
+
+            var dataService = new JsonDataService("", httpClient);
+            var viewModel = new MainViewModel(dataService);
+            viewModel.RefreshEveCharacters();
+            var mainView = new MainView { DataContext = viewModel };
+            await Dispatcher.UIThread.InvokeAsync(() => singleViewPlatform.MainView = mainView);
+        }
+        catch (Exception ex)
+        {
+            var errorDetails = new System.Text.StringBuilder();
+            errorDetails.AppendLine("=== ERROR initializing MainView ===");
+            errorDetails.AppendLine($"Message: {ex.Message}");
+            errorDetails.AppendLine($"Type: {ex.GetType().FullName}");
+            errorDetails.AppendLine($"Stack trace: {ex.StackTrace}");
+            for (var inner = ex.InnerException; inner != null; inner = inner.InnerException)
+                errorDetails.AppendLine($"Inner: {inner.GetType().FullName} - {inner.Message}");
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                singleViewPlatform.MainView = new Border
+                {
+                    Background = Brushes.DarkRed,
+                    Child = new ScrollViewer
+                    {
+                        Content = new TextBlock
+                        {
+                            Text = errorDetails.ToString(),
+                            TextWrapping = TextWrapping.Wrap,
+                            Margin = new Thickness(20),
+                            Foreground = Brushes.White,
+                            FontFamily = new Avalonia.Media.FontFamily("Consolas, monospace")
+                        }
+                    }
+                };
+            });
+        }
     }
 
     private static IDataService CreateDesktopDataService()

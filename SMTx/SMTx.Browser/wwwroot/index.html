@@ -9,6 +9,20 @@
 </head>
 
 <body style="margin: 0; overflow: hidden">
+<script>
+    globalThis.smtxEveLocalStorage = {
+        getItem: (k) => localStorage.getItem(k),
+        setItem: (k, v) => localStorage.setItem(k, v),
+        removeItem: (k) => localStorage.removeItem(k)
+    };
+    globalThis.smtxEveSessionStorage = {
+        getItem: (k) => sessionStorage.getItem(k),
+        setItem: (k, v) => sessionStorage.setItem(k, v),
+        removeItem: (k) => sessionStorage.removeItem(k)
+    };
+    globalThis.smtxNavigateTo = (url) => { location.href = url; };
+    globalThis.smtxReplaceUrl = (path) => { history.replaceState(null, '', path || '/'); };
+</script>
 <div id="out">
     <div id="test-message" style="position: absolute; top: 10px; left: 10px; background: red; color: white; padding: 10px; z-index: 10000;">
         HTML loaded, waiting for Avalonia...

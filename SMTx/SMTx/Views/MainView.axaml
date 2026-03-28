@@ -21,8 +21,25 @@
 
     <!-- Toolbar -->
     <Border Grid.Row="0" Background="#1E1E1E" BorderBrush="#3E3E3E" BorderThickness="0,0,0,1">
-      <StackPanel Orientation="Horizontal" Margin="10,5">
-        <Button Content="Reset View" Command="{Binding ResetViewCommand}" Margin="0,0,10,0" Padding="10,5" />
+      <StackPanel Orientation="Vertical" Margin="10,5">
+        <StackPanel Orientation="Horizontal">
+          <Button Content="Reset View" Command="{Binding ResetViewCommand}" Margin="0,0,10,0" Padding="10,5" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Margin="0,6,0,0" IsVisible="{Binding IsEveAvailable}">
+          <TextBlock Text="EVE:" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="#CCC" />
+          <Button Content="Add character" Command="{Binding AddEveCharacterCommand}" Margin="0,0,6,0" Padding="8,4" />
+          <Button Content="Remove selected" Command="{Binding RemoveSelectedEveCharacterCommand}" Margin="0,0,6,0" Padding="8,4" />
+          <Button Content="Logout all" Command="{Binding LogoutAllEveCommand}" Margin="0,0,6,0" Padding="8,4" />
+          <Button Content="Probe public ESI" Command="{Binding ProbeEsiCommand}" Margin="0,0,6,0" Padding="8,4" />
+          <ListBox ItemsSource="{Binding EvePilots}" SelectedItem="{Binding SelectedEvePilot}" Width="220" Height="72" Margin="8,0,0,0">
+            <ListBox.ItemTemplate>
+              <DataTemplate DataType="vm:EvePilotRow">
+                <TextBlock Text="{Binding Name}" />
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </StackPanel>
+        <TextBlock Text="{Binding EveStatus}" Margin="0,4,0,0" Foreground="#9AD" TextWrapping="Wrap" MaxWidth="900" IsVisible="{Binding IsEveAvailable}" />
       </StackPanel>
     </Border>
 

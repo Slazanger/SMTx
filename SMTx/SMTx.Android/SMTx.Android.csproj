@@ -1,8 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0-android</TargetFramework>
-    <SupportedOSPlatformVersion>21</SupportedOSPlatformVersion>
+    <!-- net9.0-android: NuGet restore uses API 34+ monikers compatible with Avalonia.Android 11.x (.NET SDK 10 maps net8.0-android34 to net8.0-android21 for restore, which breaks that package). -->
+    <TargetFramework>net9.0-android</TargetFramework>
+    <SupportedOSPlatformVersion>24.0</SupportedOSPlatformVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <ApplicationId>com.CompanyName.AvaloniaTest</ApplicationId>
     <ApplicationVersion>1</ApplicationVersion>
@@ -21,14 +23,20 @@
     <AndroidAsset Include="..\..\DataExport\3142455\render.db">
       <Link>Assets\render.db</Link>
     </AndroidAsset>
+    <AndroidAsset Include="appsettings.json">
+      <Link>Assets\appsettings.json</Link>
+    </AndroidAsset>
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Avalonia.Android" Version="$(AvaloniaVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.5" />
     <PackageReference Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.0.1.1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\SMTx\SMTx.csproj" />
+    <ProjectReference Include="..\..\SMTx.Eve.Connectors\SMTx.Eve.Connectors.csproj" />
   </ItemGroup>
 </Project>

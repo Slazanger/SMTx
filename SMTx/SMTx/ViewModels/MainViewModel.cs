@@ -1,15 +1,30 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using Avalonia.Threading;
 using ReactiveUI;
+using System.Reactive.Linq;
+using SMTx.Eve;
 using SMTx.Models;
 using SMTx.Services;
 
 namespace SMTx.ViewModels;
+
+public sealed class EvePilotRow : ViewModelBase
+{
+    public EvePilotRow(long id, string name)
+    {
+        CharacterId = id;
+        Name = name;
+    }
+
+    public long CharacterId { get; }
+    public string Name { get; }
+}
 
 public class MainViewModel : ViewModelBase
 {
@@ -50,6 +65,34 @@ public class MainViewModel : ViewModelBase
     private double _canvasHeight = 600.0;
 
     public ICommand ResetViewCommand { get; }
+    public ICommand AddEveCharacterCommand { get; }
+    public ICommand RemoveSelectedEveCharacterCommand { get; }
+    public ICommand LogoutAllEveCommand { get; }
+    public ICommand ProbeEsiCommand { get; }
+
+    private ObservableCollection<EvePilotRow> _evePilots = new();
+    private EvePilotRow? _selectedEvePilot;
+    private string _eveStatus = "";
+
+    public bool IsEveAvailable => EveRuntime.IsAvailable;
+
+    public ObservableCollection<EvePilotRow> EvePilots
+    {
+        get => _evePilots;
+        set => this.RaiseAndSetIfChanged(ref _evePilots, value);
+    }
+
+    public EvePilotRow? SelectedEvePilot
+    {
+        get => _selectedEvePilot;
+        set => this.RaiseAndSetIfChanged(ref _selectedEvePilot, value);
+    }
+
+    public string EveStatus
+    {
+        get => _eveStatus;
+        set => this.RaiseAndSetIfChanged(ref _eveStatus, value);
+    }
 
     public MainViewModel(IDataService? dataService = null)
     {
@@ -60,6 +103,12 @@ public class MainViewModel : ViewModelBase
             System.Diagnostics.Debug.WriteLine($"DataService type: {_dataService.GetType().Name}");
             _ = LoadSolarSystemsAsync(); // Fire and forget async load
             ResetViewCommand = ReactiveCommand.Create(ResetView);
+            AddEveCharacterCommand = ReactiveCommand.CreateFromTask(AddEveCharacterAsync);
+            RemoveSelectedEveCharacterCommand = ReactiveCommand.CreateFromTask(
+                RemoveSelectedEveAsync,
+                this.WhenAnyValue(x => x.SelectedEvePilot).Select(p => p != null));
+            LogoutAllEveCommand = ReactiveCommand.CreateFromTask(LogoutAllEveAsync);
+            ProbeEsiCommand = ReactiveCommand.CreateFromTask(ProbeEsiAsync);
             System.Diagnostics.Debug.WriteLine("MainViewModel constructor completed");
         }
         catch (Exception ex)
@@ -166,6 +215,101 @@ public class MainViewModel : ViewModelBase
                 System.Diagnostics.Debug.WriteLine($"Inner exception: {ex.InnerException.Message}");
                 Console.WriteLine($"Inner exception: {ex.InnerException.Message}");
             }
+        }
+    }
+
+    public void RefreshEveCharacters()
+    {
+        EvePilots.Clear();
+        if (!EveRuntime.IsAvailable || EveRuntime.Store == null)
+        {
+            this.RaisePropertyChanged(nameof(IsEveAvailable));
+            return;
+        }
+
+        foreach (var r in EveRuntime.Store.ListCharacters())
+            EvePilots.Add(new EvePilotRow(r.CharacterId, string.IsNullOrEmpty(r.CharacterName) ? r.CharacterId.ToString() : r.CharacterName));
+        this.RaisePropertyChanged(nameof(IsEveAvailable));
+    }
+
+    private async Task AddEveCharacterAsync()
+    {
+        if (EveRuntime.Sso == null)
+        {
+            EveStatus = "EVE SSO not configured.";
+            return;
+        }
+
+        try
+        {
+            if (EveRuntime.Sso.UsesBrowserSplitFlow)
+            {
+#if NET8_0_BROWSER
+                var (auth, _, _) = EveRuntime.Sso.PrepareBrowserAuthorization();
+                WasmNavigationInterop.NavigateTo(auth.ToString());
+                EveStatus = "Redirecting to EVE SSO…";
+#endif
+                return;
+            }
+
+            await EveRuntime.Sso.AddCharacterAsync().ConfigureAwait(false);
+            await Dispatcher.UIThread.InvokeAsync(RefreshEveCharacters);
+            EveStatus = "Character linked.";
+        }
+        catch (Exception ex)
+        {
+            EveStatus = ex.Message;
+        }
+    }
+
+    private async Task RemoveSelectedEveAsync()
+    {
+        var p = SelectedEvePilot;
+        if (p == null || EveRuntime.Sso == null)
+            return;
+        await EveRuntime.Sso.RemoveCharacterAsync(p.CharacterId).ConfigureAwait(false);
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            SelectedEvePilot = null;
+            RefreshEveCharacters();
+        });
+    }
+
+    private async Task LogoutAllEveAsync()
+    {
+        if (EveRuntime.Sso == null)
+            return;
+        await EveRuntime.Sso.LogoutAllAsync().ConfigureAwait(false);
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            SelectedEvePilot = null;
+            RefreshEveCharacters();
+        });
+    }
+
+    private async Task ProbeEsiAsync()
+    {
+        if (EveRuntime.Esi == null)
+        {
+            EveStatus = "ESI not available.";
+            return;
+        }
+
+        var id = SelectedEvePilot?.CharacterId ?? 2112625428L;
+        try
+        {
+            var info = await EveRuntime.Esi.GetCharacterPublicInfoAsync(id).ConfigureAwait(false);
+            if (info == null)
+            {
+                EveStatus = "ESI returned no character.";
+                return;
+            }
+
+            EveStatus = $"Public ESI: {info.Name} (corp {info.CorporationId})";
+        }
+        catch (Exception ex)
+        {
+            EveStatus = $"ESI error: {ex.Message}";
         }
     }
 
