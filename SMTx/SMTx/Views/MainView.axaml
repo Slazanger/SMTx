@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:SMTx.ViewModels"
              xmlns:models="clr-namespace:SMTx.Models"
+             xmlns:views="clr-namespace:SMTx.Views"
              mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
              x:Class="SMTx.Views.MainView"
              x:DataType="vm:MainViewModel"
@@ -13,292 +14,23 @@
   </Design.DataContext>
 
   <Grid RowDefinitions="Auto,*">
-    <!-- Top chrome -->
-    <Border Grid.Row="0"
-            Background="#161B22"
-            BorderBrush="#30363D"
-            BorderThickness="0,0,0,1"
-            Padding="12,8">
-      <Grid ColumnDefinitions="Auto,*,Auto">
-        <TextBlock Grid.Column="0"
-                   Text="SMTx"
-                   VerticalAlignment="Center"
-                   FontSize="18"
-                   FontWeight="SemiBold"
-                   Foreground="#E6EDF3"
-                   Margin="0,0,24,0" />
-        <ListBox Grid.Column="1"
-                 ItemsSource="{Binding ShellTabOptions}"
-                 SelectedItem="{Binding SelectedShellTabOption}"
-                 Background="Transparent"
-                 BorderThickness="0"
-                 Padding="0"
-                 HorizontalAlignment="Center"
-                 VerticalAlignment="Center">
-          <ListBox.ItemsPanel>
-            <ItemsPanelTemplate>
-              <StackPanel Orientation="Horizontal" Spacing="2" />
-            </ItemsPanelTemplate>
-          </ListBox.ItemsPanel>
-          <ListBox.ItemTemplate>
-            <DataTemplate DataType="vm:ShellTabOption">
-              <TextBlock Text="{Binding DisplayName}"
-                         VerticalAlignment="Center"
-                         Foreground="#C9D1D9" />
-            </DataTemplate>
-          </ListBox.ItemTemplate>
-          <ListBox.Styles>
-            <Style Selector="ListBoxItem">
-              <Setter Property="Padding" Value="14,8" />
-              <Setter Property="Margin" Value="0" />
-              <Setter Property="Background" Value="Transparent" />
-              <Setter Property="CornerRadius" Value="4" />
-            </Style>
-            <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
-              <Setter Property="Background" Value="#1F3A5F" />
-            </Style>
-            <Style Selector="ListBoxItem:selected TextBlock">
-              <Setter Property="Foreground" Value="#79B8FF" />
-            </Style>
-            <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-              <Setter Property="Background" Value="#21262D" />
-            </Style>
-          </ListBox.Styles>
-        </ListBox>
-        <StackPanel Grid.Column="2"
-                    Orientation="Horizontal"
-                    Spacing="20"
-                    VerticalAlignment="Center"
-                    Margin="16,0,0,0">
-          <StackPanel Orientation="Horizontal" Spacing="6">
-            <Border Width="10" Height="10" Background="#FF9800" CornerRadius="1" VerticalAlignment="Center" />
-            <TextBlock VerticalAlignment="Center" Foreground="#C9D1D9" FontSize="12">
-              <Run Text="Alerts: " />
-              <Run Text="{Binding AlertCount}" />
-            </TextBlock>
-          </StackPanel>
-          <StackPanel Orientation="Horizontal" Spacing="6">
-            <Border Width="10" Height="10" Background="#58A6FF" CornerRadius="1" VerticalAlignment="Center" />
-            <TextBlock VerticalAlignment="Center" Foreground="#C9D1D9" FontSize="12">
-              <Run Text="Notifications: " />
-              <Run Text="{Binding NotificationCount}" />
-            </TextBlock>
-          </StackPanel>
-        </StackPanel>
-      </Grid>
-    </Border>
+    <views:MainShellHeaderView Grid.Row="0" />
 
-    <!-- Tab content (stacked; visibility per tab keeps map alive on Home) -->
     <Grid Grid.Row="1">
-      <!-- Home -->
-      <Grid IsVisible="{Binding SelectedShellTab, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static models:MainShellTab.Home}}">
-        <Grid RowDefinitions="*,Auto">
-          <Grid Grid.Row="0" ColumnDefinitions="2*,6*,2*">
-            <!-- System list -->
-            <Border Grid.Column="0"
-                    Background="#131820"
-                    BorderBrush="#30363D"
-                    BorderThickness="0,0,1,0">
-              <Grid RowDefinitions="Auto,Auto,*">
-                <Border Grid.Row="0" Background="#1a2332" Padding="10,8">
-                  <TextBlock Text="System List" Foreground="#E6EDF3" FontWeight="SemiBold" />
-                </Border>
-                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="8,8,8,0" Spacing="4">
-                  <Button Content="Region"
-                          Padding="8,4"
-                          Command="{Binding SelectHomeSystemListTabCommand}"
-                          CommandParameter="{x:Static models:HomeSystemListTab.Region}" />
-                  <Button Content="Constellation"
-                          Padding="8,4"
-                          Command="{Binding SelectHomeSystemListTabCommand}"
-                          CommandParameter="{x:Static models:HomeSystemListTab.Constellation}" />
-                  <Button Content="History"
-                          Padding="8,4"
-                          Command="{Binding SelectHomeSystemListTabCommand}"
-                          CommandParameter="{x:Static models:HomeSystemListTab.History}" />
-                </StackPanel>
-                <ListBox Grid.Row="2"
-                         ItemsSource="{Binding MockSystemList}"
-                         Background="Transparent"
-                         BorderThickness="0"
-                         Margin="4,8,4,4">
-                  <ListBox.ItemTemplate>
-                    <DataTemplate DataType="vm:SystemListRowVm">
-                      <Grid ColumnDefinitions="Auto,*,Auto" Margin="4,2">
-                        <Border Grid.Column="0" Width="10" Height="10" CornerRadius="1"
-                                Background="{Binding SecIndicatorBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                        <TextBlock Grid.Column="1" Text="{Binding Name}" Foreground="#E6EDF3" VerticalAlignment="Center" />
-                        <TextBlock Grid.Column="2" Text="{Binding SecLabel}" FontSize="11" VerticalAlignment="Center"
-                                   Foreground="{Binding SecIndicatorBrush}" />
-                      </Grid>
-                    </DataTemplate>
-                  </ListBox.ItemTemplate>
-                </ListBox>
-              </Grid>
-            </Border>
+      <views:HomeTabPanelView
+          IsVisible="{Binding SelectedShellTab, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static models:MainShellTab.Home}}" />
 
-            <!-- Map -->
-            <Grid Grid.Column="1"
-                  x:Name="MapContainer"
-                  Background="#0a0d12">
-              <!-- Map renderer + overlays added in code-behind -->
-            </Grid>
+      <views:IntelShellTabPanelView
+          IsVisible="{Binding SelectedShellTab, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static models:MainShellTab.Intel}}" />
 
-            <!-- Intel / activity -->
-            <Border Grid.Column="2"
-                    Background="#131820"
-                    BorderBrush="#30363D"
-                    BorderThickness="1,0,0,0">
-              <Grid RowDefinitions="2*,*">
-                <Grid Grid.Row="0" RowDefinitions="Auto,*">
-                  <Border Grid.Row="0" Background="#1a2332" Padding="10,8">
-                    <StackPanel Orientation="Horizontal" Spacing="4">
-                      <Button Content="Intel"
-                              Padding="8,4"
-                              Command="{Binding SelectHomeIntelPanelTabCommand}"
-                              CommandParameter="{x:Static models:HomeIntelPanelTab.Intel}" />
-                      <Button Content="Log"
-                              Padding="8,4"
-                              Command="{Binding SelectHomeIntelPanelTabCommand}"
-                              CommandParameter="{x:Static models:HomeIntelPanelTab.Log}" />
-                    </StackPanel>
-                  </Border>
-                  <ListBox Grid.Row="1"
-                           ItemsSource="{Binding MockIntelLines}"
-                           Background="Transparent"
-                           BorderThickness="0"
-                           Margin="8,8,8,4"
-                           IsVisible="{Binding SelectedHomeIntelPanelTab, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static models:HomeIntelPanelTab.Intel}}">
-                    <ListBox.ItemTemplate>
-                      <DataTemplate>
-                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4">
-                          <Border Width="3" Height="16" Background="#58A6FF" CornerRadius="1" VerticalAlignment="Center" />
-                          <TextBlock Text="{Binding}" TextWrapping="Wrap" Foreground="#C9D1D9" />
-                        </StackPanel>
-                      </DataTemplate>
-                    </ListBox.ItemTemplate>
-                  </ListBox>
-                  <TextBlock Grid.Row="1"
-                             Text="No log entries."
-                             Margin="12"
-                             Foreground="#8B949E"
-                             IsVisible="{Binding SelectedHomeIntelPanelTab, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static models:HomeIntelPanelTab.Log}}" />
-                </Grid>
-                <Border Grid.Row="1" BorderBrush="#30363D" BorderThickness="0,1,0,0" Padding="0,8,0,0">
-                  <Grid RowDefinitions="Auto,*">
-                    <TextBlock Text="Recent Activity" Foreground="#E6EDF3" FontWeight="SemiBold" Margin="10,0,10,6" />
-                    <ListBox Grid.Row="1"
-                             ItemsSource="{Binding MockActivityLines}"
-                             Background="Transparent"
-                             BorderThickness="0"
-                             Margin="4,0,4,4">
-                      <ListBox.ItemTemplate>
-                        <DataTemplate>
-                          <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4">
-                            <Border Width="8" Height="8" Background="#F85149" CornerRadius="1" VerticalAlignment="Center" />
-                            <TextBlock Text="{Binding}" TextWrapping="Wrap" Foreground="#C9D1D9" />
-                          </StackPanel>
-                        </DataTemplate>
-                      </ListBox.ItemTemplate>
-                    </ListBox>
-                  </Grid>
-                </Border>
-              </Grid>
-            </Border>
-          </Grid>
+      <views:CharactersTabPanelView
+          IsVisible="{Binding SelectedShellTab, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static models:MainShellTab.Characters}}" />
 
-          <Border Grid.Row="1"
-                  Background="#161B22"
-                  BorderBrush="#30363D"
-                  BorderThickness="0,1,0,0"
-                  Padding="12,8">
-            <Grid RowDefinitions="Auto,Auto">
-              <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
-                <TextBlock Grid.Column="0" Text="{Binding RouteSummaryLine}" Foreground="#E6EDF3" />
-                <TextBlock Grid.Column="1" Text="{Binding RouteEtaLine}" Foreground="#8B949E" />
-              </Grid>
-              <TextBlock Grid.Row="1" Text="{Binding RoutePathLine}" Foreground="#8B949E" Margin="0,6,0,0" TextWrapping="Wrap" />
-            </Grid>
-          </Border>
-        </Grid>
-      </Grid>
+      <views:SettingsTabPanelView
+          IsVisible="{Binding SelectedShellTab, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static models:MainShellTab.Settings}}" />
 
-      <!-- Search -->
-      <Border Background="#0D1117"
-              IsVisible="{Binding SelectedShellTab, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static models:MainShellTab.Search}}">
-        <TextBlock Text="Search systems and routes (coming soon)."
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   Foreground="#8B949E" />
-      </Border>
-
-      <!-- Routes -->
-      <Border Background="#0D1117"
-              IsVisible="{Binding SelectedShellTab, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static models:MainShellTab.Routes}}">
-        <TextBlock Text="Route planning (coming soon)."
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   Foreground="#8B949E" />
-      </Border>
-
-      <!-- Bookmarks -->
-      <Border Background="#0D1117"
-              IsVisible="{Binding SelectedShellTab, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static models:MainShellTab.Bookmarks}}">
-        <TextBlock Text="Bookmarks (coming soon)."
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   Foreground="#8B949E" />
-      </Border>
-
-      <!-- Intel (shell tab) -->
-      <Border Background="#0D1117"
-              IsVisible="{Binding SelectedShellTab, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static models:MainShellTab.Intel}}">
-        <TextBlock Text="Global intel view (coming soon)."
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   Foreground="#8B949E" />
-      </Border>
-
-      <!-- Settings: EVE + map reset -->
-      <ScrollViewer Background="#0D1117"
-                    IsVisible="{Binding SelectedShellTab, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static models:MainShellTab.Settings}}">
-        <StackPanel Margin="24" Spacing="12" MaxWidth="900">
-          <TextBlock Text="Settings" FontSize="20" Foreground="#E6EDF3" FontWeight="SemiBold" />
-          <StackPanel Spacing="8">
-            <TextBlock Text="Map" Foreground="#8B949E" />
-            <Button Content="Reset View"
-                    Command="{Binding ResetViewCommand}"
-                    HorizontalAlignment="Left"
-                    Padding="12,6" />
-          </StackPanel>
-          <StackPanel Spacing="8" IsVisible="{Binding IsEveAvailable}">
-            <TextBlock Text="EVE Online" Foreground="#8B949E" />
-            <StackPanel Orientation="Horizontal" Spacing="8">
-              <Button Content="Add character" Command="{Binding AddEveCharacterCommand}" Padding="10,5" />
-              <Button Content="Remove selected" Command="{Binding RemoveSelectedEveCharacterCommand}" Padding="10,5" />
-              <Button Content="Logout all" Command="{Binding LogoutAllEveCommand}" Padding="10,5" />
-              <Button Content="Probe public ESI" Command="{Binding ProbeEsiCommand}" Padding="10,5" />
-            </StackPanel>
-            <ListBox ItemsSource="{Binding EvePilots}" SelectedItem="{Binding SelectedEvePilot}" Width="280" Height="120">
-              <ListBox.ItemTemplate>
-                <DataTemplate DataType="vm:EvePilotRow">
-                  <TextBlock Text="{Binding Name}" />
-                </DataTemplate>
-              </ListBox.ItemTemplate>
-            </ListBox>
-            <TextBlock Text="{Binding EveStatus}" Foreground="#9AD" TextWrapping="Wrap" />
-          </StackPanel>
-        </StackPanel>
-      </ScrollViewer>
-
-      <!-- Help -->
-      <Border Background="#0D1117"
-              IsVisible="{Binding SelectedShellTab, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static models:MainShellTab.Help}}">
-        <TextBlock Text="Help and documentation (coming soon)."
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   Foreground="#8B949E" />
-      </Border>
+      <views:AboutShellTabPanelView
+          IsVisible="{Binding SelectedShellTab, Converter={StaticResource EnumEquals}, ConverterParameter={x:Static models:MainShellTab.About}}" />
     </Grid>
   </Grid>
 </UserControl>

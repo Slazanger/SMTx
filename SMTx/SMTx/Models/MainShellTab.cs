@@ -3,12 +3,10 @@ namespace SMTx.Models;
 public enum MainShellTab
 {
     Home,
-    Search,
-    Routes,
-    Bookmarks,
     Intel,
+    Characters,
     Settings,
-    Help
+    About
 }
 
 public enum HomeSystemListTab

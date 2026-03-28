@@ -1,0 +1,11 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             x:Class="SMTx.Views.IntelShellTabPanelView">
+  <Border Background="#0D1117">
+    <TextBlock Text="Intel feeds and filters (coming soon)."
+               HorizontalAlignment="Center"
+               VerticalAlignment="Center"
+               Foreground="#8B949E" />
+  </Border>
+</UserControl>

@@ -1,0 +1,35 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:SMTx.ViewModels"
+             x:Class="SMTx.Views.CharactersTabPanelView"
+             x:DataType="vm:MainViewModel">
+  <ScrollViewer Background="#0D1117">
+    <StackPanel Margin="24" Spacing="12" MaxWidth="900">
+      <TextBlock Text="Characters" FontSize="20" Foreground="#E6EDF3" FontWeight="SemiBold" />
+      <TextBlock Text="EVE Online pilots linked via ESI."
+                 Foreground="#8B949E"
+                 TextWrapping="Wrap" />
+      <StackPanel Spacing="8" IsVisible="{Binding IsEveAvailable}">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Button Content="Add character" Command="{Binding AddEveCharacterCommand}" Padding="10,5" />
+          <Button Content="Remove selected" Command="{Binding RemoveSelectedEveCharacterCommand}" Padding="10,5" />
+          <Button Content="Logout all" Command="{Binding LogoutAllEveCommand}" Padding="10,5" />
+          <Button Content="Probe public ESI" Command="{Binding ProbeEsiCommand}" Padding="10,5" />
+        </StackPanel>
+        <ListBox ItemsSource="{Binding EvePilots}" SelectedItem="{Binding SelectedEvePilot}" Width="280" Height="120">
+          <ListBox.ItemTemplate>
+            <DataTemplate DataType="vm:EvePilotRow">
+              <TextBlock Text="{Binding Name}" />
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+        <TextBlock Text="{Binding EveStatus}" Foreground="#9AD" TextWrapping="Wrap" />
+      </StackPanel>
+      <TextBlock Text="EVE linking is not available on this build."
+                 Foreground="#8B949E"
+                 TextWrapping="Wrap"
+                 IsVisible="{Binding IsEveUnavailable}" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

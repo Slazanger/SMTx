@@ -2,9 +2,9 @@ using Avalonia.Controls;
 
 namespace SMTx.Views;
 
-public partial class MainView : UserControl
+public partial class CharactersTabPanelView : UserControl
 {
-    public MainView()
+    public CharactersTabPanelView()
     {
         InitializeComponent();
     }

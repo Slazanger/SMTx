@@ -1,0 +1,19 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:SMTx.ViewModels"
+             x:Class="SMTx.Views.HomeRouteFooterView"
+             x:DataType="vm:MainViewModel">
+  <Border Background="#161B22"
+          BorderBrush="#30363D"
+          BorderThickness="0,1,0,0"
+          Padding="12,8">
+    <Grid RowDefinitions="Auto,Auto">
+      <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+        <TextBlock Grid.Column="0" Text="{Binding RouteSummaryLine}" Foreground="#E6EDF3" />
+        <TextBlock Grid.Column="1" Text="{Binding RouteEtaLine}" Foreground="#8B949E" />
+      </Grid>
+      <TextBlock Grid.Row="1" Text="{Binding RoutePathLine}" Foreground="#8B949E" Margin="0,6,0,0" TextWrapping="Wrap" />
+    </Grid>
+  </Border>
+</UserControl>

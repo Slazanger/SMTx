@@ -76,6 +76,8 @@ public class MainViewModel : ViewModelBase
 
     public bool IsEveAvailable => EveRuntime.IsAvailable;
 
+    public bool IsEveUnavailable => !IsEveAvailable;
+
     public ObservableCollection<EvePilotRow> EvePilots
     {
         get => _evePilots;
@@ -104,12 +106,10 @@ public class MainViewModel : ViewModelBase
     public IReadOnlyList<ShellTabOption> ShellTabOptions { get; } =
     [
         new ShellTabOption(MainShellTab.Home, "Home"),
-        new ShellTabOption(MainShellTab.Search, "Search"),
-        new ShellTabOption(MainShellTab.Routes, "Routes"),
-        new ShellTabOption(MainShellTab.Bookmarks, "Bookmarks"),
         new ShellTabOption(MainShellTab.Intel, "Intel"),
+        new ShellTabOption(MainShellTab.Characters, "Characters"),
         new ShellTabOption(MainShellTab.Settings, "Settings"),
-        new ShellTabOption(MainShellTab.Help, "Help")
+        new ShellTabOption(MainShellTab.About, "About")
     ];
 
     public MainShellTab SelectedShellTab
@@ -149,8 +149,17 @@ public class MainViewModel : ViewModelBase
     public HomeIntelPanelTab SelectedHomeIntelPanelTab
     {
         get => _homeIntelPanelTab;
-        set => this.RaiseAndSetIfChanged(ref _homeIntelPanelTab, value);
+        set
+        {
+            if (_homeIntelPanelTab.Equals(value)) return;
+            this.RaiseAndSetIfChanged(ref _homeIntelPanelTab, value);
+            this.RaisePropertyChanged(nameof(IsHomeIntelPanelIntel));
+            this.RaisePropertyChanged(nameof(IsHomeIntelPanelLog));
+        }
     }
+
+    public bool IsHomeIntelPanelIntel => _homeIntelPanelTab == HomeIntelPanelTab.Intel;
+    public bool IsHomeIntelPanelLog => _homeIntelPanelTab == HomeIntelPanelTab.Log;
 
     public ICommand SelectHomeIntelPanelTabCommand { get; }
 
@@ -313,12 +322,14 @@ public class MainViewModel : ViewModelBase
         if (!EveRuntime.IsAvailable || EveRuntime.Store == null)
         {
             this.RaisePropertyChanged(nameof(IsEveAvailable));
+            this.RaisePropertyChanged(nameof(IsEveUnavailable));
             return;
         }
 
         foreach (var r in EveRuntime.Store.ListCharacters())
             EvePilots.Add(new EvePilotRow(r.CharacterId, string.IsNullOrEmpty(r.CharacterName) ? r.CharacterId.ToString() : r.CharacterName));
         this.RaisePropertyChanged(nameof(IsEveAvailable));
+        this.RaisePropertyChanged(nameof(IsEveUnavailable));
     }
 
     private async Task AddEveCharacterAsync()

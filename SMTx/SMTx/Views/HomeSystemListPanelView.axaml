@@ -1,0 +1,48 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:SMTx.ViewModels"
+             xmlns:models="clr-namespace:SMTx.Models"
+             x:Class="SMTx.Views.HomeSystemListPanelView"
+             x:DataType="vm:MainViewModel">
+  <Border Background="#131820"
+          BorderBrush="#30363D"
+          BorderThickness="0,0,1,0">
+    <Grid RowDefinitions="Auto,Auto,*">
+      <Border Grid.Row="0" Background="#1a2332" Padding="10,8">
+        <TextBlock Text="System List" Foreground="#E6EDF3" FontWeight="SemiBold" />
+      </Border>
+      <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="8,8,8,0" Spacing="4">
+        <Button Content="Region"
+                Padding="8,4"
+                Command="{Binding SelectHomeSystemListTabCommand}"
+                CommandParameter="{x:Static models:HomeSystemListTab.Region}" />
+        <Button Content="Constellation"
+                Padding="8,4"
+                Command="{Binding SelectHomeSystemListTabCommand}"
+                CommandParameter="{x:Static models:HomeSystemListTab.Constellation}" />
+        <Button Content="History"
+                Padding="8,4"
+                Command="{Binding SelectHomeSystemListTabCommand}"
+                CommandParameter="{x:Static models:HomeSystemListTab.History}" />
+      </StackPanel>
+      <ListBox Grid.Row="2"
+               ItemsSource="{Binding MockSystemList}"
+               Background="Transparent"
+               BorderThickness="0"
+               Margin="4,8,4,4">
+        <ListBox.ItemTemplate>
+          <DataTemplate DataType="vm:SystemListRowVm">
+            <Grid ColumnDefinitions="Auto,*,Auto" Margin="4,2">
+              <Border Grid.Column="0" Width="10" Height="10" CornerRadius="1"
+                      Background="{Binding SecIndicatorBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
+              <TextBlock Grid.Column="1" Text="{Binding Name}" Foreground="#E6EDF3" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="2" Text="{Binding SecLabel}" FontSize="11" VerticalAlignment="Center"
+                         Foreground="{Binding SecIndicatorBrush}" />
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Grid>
+  </Border>
+</UserControl>

@@ -1,0 +1,25 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             x:Class="SMTx.Views.AboutShellTabPanelView">
+  <Border Background="#0D1117">
+    <StackPanel Margin="32" Spacing="12" MaxWidth="560" HorizontalAlignment="Center" VerticalAlignment="Center">
+      <TextBlock Text="SMTx"
+                 FontSize="22"
+                 FontWeight="SemiBold"
+                 Foreground="#E6EDF3"
+                 HorizontalAlignment="Center" />
+      <TextBlock Text="Slazanger's Map Tool for EVE Online... but with an X"
+                 Foreground="#8B949E"
+                 TextWrapping="Wrap"
+                 HorizontalAlignment="Center"
+                 TextAlignment="Center" />
+      <TextBlock Text="Documentation and release notes will appear here."
+                 Foreground="#6E7681"
+                 TextWrapping="Wrap"
+                 HorizontalAlignment="Center"
+                 TextAlignment="Center"
+                 Margin="0,16,0,0" />
+    </StackPanel>
+  </Border>
+</UserControl>

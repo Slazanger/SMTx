@@ -2,9 +2,9 @@ using Avalonia.Controls;
 
 namespace SMTx.Views;
 
-public partial class MainView : UserControl
+public partial class HomeRouteFooterView : UserControl
 {
-    public MainView()
+    public HomeRouteFooterView()
     {
         InitializeComponent();
     }

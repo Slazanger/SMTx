@@ -1,0 +1,16 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:views="clr-namespace:SMTx.Views"
+             xmlns:vm="clr-namespace:SMTx.ViewModels"
+             x:Class="SMTx.Views.HomeTabPanelView"
+             x:DataType="vm:MainViewModel">
+  <Grid RowDefinitions="*,Auto">
+    <Grid Grid.Row="0" ColumnDefinitions="2*,6*,2*">
+      <views:HomeSystemListPanelView Grid.Column="0" />
+      <views:HomeMapHostView Grid.Column="1" />
+      <views:HomeIntelActivityPanelView Grid.Column="2" />
+    </Grid>
+    <views:HomeRouteFooterView Grid.Row="1" />
+  </Grid>
+</UserControl>

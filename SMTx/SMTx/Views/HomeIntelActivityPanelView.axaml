@@ -1,0 +1,67 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:SMTx.ViewModels"
+             xmlns:models="clr-namespace:SMTx.Models"
+             x:Class="SMTx.Views.HomeIntelActivityPanelView"
+             x:DataType="vm:MainViewModel">
+  <Border Background="#131820"
+          BorderBrush="#30363D"
+          BorderThickness="1,0,0,0">
+    <Grid RowDefinitions="2*,*">
+      <Grid Grid.Row="0" RowDefinitions="Auto,*">
+        <Border Grid.Row="0" Background="#1a2332" Padding="10,8">
+          <StackPanel Orientation="Horizontal" Spacing="4">
+            <Button Content="Intel"
+                    Padding="8,4"
+                    Command="{Binding SelectHomeIntelPanelTabCommand}"
+                    CommandParameter="{x:Static models:HomeIntelPanelTab.Intel}" />
+            <Button Content="Log"
+                    Padding="8,4"
+                    Command="{Binding SelectHomeIntelPanelTabCommand}"
+                    CommandParameter="{x:Static models:HomeIntelPanelTab.Log}" />
+          </StackPanel>
+        </Border>
+        <ListBox Grid.Row="1"
+                 ItemsSource="{Binding MockIntelLines}"
+                 Background="Transparent"
+                 BorderThickness="0"
+                 Margin="8,8,8,4"
+                 IsVisible="{Binding IsHomeIntelPanelIntel}">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4">
+                <Border Width="3" Height="16" Background="#58A6FF" CornerRadius="1" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding}" TextWrapping="Wrap" Foreground="#C9D1D9" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+        <TextBlock Grid.Row="1"
+                   Text="No log entries."
+                   Margin="12"
+                   Foreground="#8B949E"
+                   IsVisible="{Binding IsHomeIntelPanelLog}" />
+      </Grid>
+      <Border Grid.Row="1" BorderBrush="#30363D" BorderThickness="0,1,0,0" Padding="0,8,0,0">
+        <Grid RowDefinitions="Auto,*">
+          <TextBlock Text="Recent Activity" Foreground="#E6EDF3" FontWeight="SemiBold" Margin="10,0,10,6" />
+          <ListBox Grid.Row="1"
+                   ItemsSource="{Binding MockActivityLines}"
+                   Background="Transparent"
+                   BorderThickness="0"
+                   Margin="4,0,4,4">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4">
+                  <Border Width="8" Height="8" Background="#F85149" CornerRadius="1" VerticalAlignment="Center" />
+                  <TextBlock Text="{Binding}" TextWrapping="Wrap" Foreground="#C9D1D9" />
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </Border>
+    </Grid>
+  </Border>
+</UserControl>
