@@ -40,6 +40,20 @@ public sealed class EsiClientFacade
         return dto.Model;
     }
 
+    public async Task<CorporationInfo> GetCorporationPublicInfoAsync(int corporationId, CancellationToken cancellationToken = default)
+    {
+        _ = cancellationToken;
+        var dto = await Api.Corporation.GetCorporationInfoAsync(corporationId).ConfigureAwait(false);
+        return dto.Model;
+    }
+
+    public async Task<Alliance> GetAlliancePublicInfoAsync(int allianceId, CancellationToken cancellationToken = default)
+    {
+        _ = cancellationToken;
+        var dto = await Api.Alliance.GetAllianceInfoAsync(allianceId).ConfigureAwait(false);
+        return dto.Model;
+    }
+
     /// <summary>Builds <see cref="AuthDTO"/> for EVEStandard; refreshes access token if near expiry.</summary>
     public async Task<AuthDTO> CreateAuthAsync(long characterId, CancellationToken cancellationToken = default)
     {

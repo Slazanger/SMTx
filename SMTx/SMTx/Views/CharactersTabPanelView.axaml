@@ -4,32 +4,123 @@
              xmlns:vm="clr-namespace:SMTx.ViewModels"
              x:Class="SMTx.Views.CharactersTabPanelView"
              x:DataType="vm:MainViewModel">
-  <ScrollViewer Background="#0D1117">
-    <StackPanel Margin="24" Spacing="12" MaxWidth="900">
-      <TextBlock Text="Characters" FontSize="20" Foreground="#E6EDF3" FontWeight="SemiBold" />
-      <TextBlock Text="EVE Online pilots linked via ESI."
-                 Foreground="#8B949E"
-                 TextWrapping="Wrap" />
-      <StackPanel Spacing="8" IsVisible="{Binding IsEveAvailable}">
+  <Panel Background="#0D1117">
+    <TextBlock Margin="24"
+               Text="EVE linking is not available on this build."
+               Foreground="#8B949E"
+               TextWrapping="Wrap"
+               IsVisible="{Binding IsEveUnavailable}" />
+
+    <DockPanel IsVisible="{Binding IsEveAvailable}" Margin="24" LastChildFill="True">
+      <StackPanel DockPanel.Dock="Top" Spacing="10" Margin="0,0,0,16">
+        <TextBlock Text="Characters" FontSize="20" Foreground="#E6EDF3" FontWeight="SemiBold" />
+        <TextBlock Text="EVE Online pilots linked via ESI."
+                   Foreground="#8B949E"
+                   TextWrapping="Wrap" />
         <StackPanel Orientation="Horizontal" Spacing="8">
           <Button Content="Add character" Command="{Binding AddEveCharacterCommand}" Padding="10,5" />
           <Button Content="Remove selected" Command="{Binding RemoveSelectedEveCharacterCommand}" Padding="10,5" />
           <Button Content="Logout all" Command="{Binding LogoutAllEveCommand}" Padding="10,5" />
           <Button Content="Probe public ESI" Command="{Binding ProbeEsiCommand}" Padding="10,5" />
         </StackPanel>
-        <ListBox ItemsSource="{Binding EvePilots}" SelectedItem="{Binding SelectedEvePilot}" Width="280" Height="120">
+      </StackPanel>
+
+      <TextBlock DockPanel.Dock="Bottom"
+                 Margin="0,12,0,0"
+                 Text="{Binding EveStatus}"
+                 Foreground="#9AD"
+                 TextWrapping="Wrap" />
+
+      <Grid ColumnDefinitions="280,*" MinHeight="280">
+        <ListBox Grid.Column="0"
+                 ItemsSource="{Binding EvePilots}"
+                 SelectedItem="{Binding SelectedEvePilot}"
+                 SelectionMode="Single">
           <ListBox.ItemTemplate>
             <DataTemplate DataType="vm:EvePilotRow">
               <TextBlock Text="{Binding Name}" />
             </DataTemplate>
           </ListBox.ItemTemplate>
         </ListBox>
-        <TextBlock Text="{Binding EveStatus}" Foreground="#9AD" TextWrapping="Wrap" />
-      </StackPanel>
-      <TextBlock Text="EVE linking is not available on this build."
-                 Foreground="#8B949E"
-                 TextWrapping="Wrap"
-                 IsVisible="{Binding IsEveUnavailable}" />
-    </StackPanel>
-  </ScrollViewer>
+
+        <Panel Grid.Column="1" Margin="20,0,0,0">
+          <TextBlock Text="Select a pilot from the list."
+                     Foreground="#8B949E"
+                     VerticalAlignment="Center"
+                     HorizontalAlignment="Center"
+                     TextWrapping="Wrap"
+                     IsVisible="{Binding !HasEvePilotSelection}" />
+
+          <Border Background="#161B22"
+                  CornerRadius="8"
+                  Padding="16"
+                  IsVisible="{Binding HasEvePilotSelection}">
+            <ScrollViewer MaxHeight="520">
+              <StackPanel x:DataType="vm:EveCharacterDetailViewModel"
+                          DataContext="{Binding Detail}"
+                          Spacing="10">
+                <TextBlock Text="{Binding LoadError}"
+                           Foreground="#F85149"
+                           TextWrapping="Wrap"
+                           IsVisible="{Binding HasLoadError}" />
+                <TextBlock Text="Loading character details…"
+                           Foreground="#8B949E"
+                           IsVisible="{Binding IsLoading}" />
+                <StackPanel Spacing="12" IsVisible="{Binding IsDetailReady}">
+                  <StackPanel Orientation="Horizontal" Spacing="16">
+                    <Image Width="96"
+                           Height="96"
+                           Source="{Binding Portrait}"
+                           Stretch="Uniform" />
+                    <StackPanel VerticalAlignment="Center" Spacing="4">
+                      <TextBlock Text="{Binding CharacterName}"
+                                 FontSize="18"
+                                 FontWeight="SemiBold"
+                                 Foreground="#E6EDF3" />
+                      <TextBlock Foreground="#8B949E">
+                        <Run Text="Character ID " />
+                        <Run Text="{Binding CharacterIdText}" />
+                      </TextBlock>
+                    </StackPanel>
+                  </StackPanel>
+
+                  <StackPanel Spacing="6" IsVisible="{Binding HasCorporation}">
+                    <TextBlock Text="Corporation"
+                               FontWeight="SemiBold"
+                               Foreground="#E6EDF3" />
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                      <Image Width="48"
+                             Height="48"
+                             Source="{Binding CorporationLogo}"
+                             Stretch="Uniform" />
+                      <TextBlock Text="{Binding CorporationLine}"
+                                 Foreground="#C9D1D9"
+                                 VerticalAlignment="Center"
+                                 TextWrapping="Wrap" />
+                    </StackPanel>
+                  </StackPanel>
+
+                  <StackPanel Spacing="6" IsVisible="{Binding HasAlliance}">
+                    <TextBlock Text="Alliance"
+                               FontWeight="SemiBold"
+                               Foreground="#E6EDF3" />
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                      <Image Width="48"
+                             Height="48"
+                             Source="{Binding AllianceLogo}"
+                             Stretch="Uniform" />
+                      <TextBlock Text="{Binding AllianceLine}"
+                                 Foreground="#C9D1D9"
+                                 VerticalAlignment="Center"
+                                 TextWrapping="Wrap" />
+                    </StackPanel>
+                  </StackPanel>
+                </StackPanel>
+              </StackPanel>
+            </ScrollViewer>
+          </Border>
+        </Panel>
+      </Grid>
+    </DockPanel>
+  </Panel>
 </UserControl>

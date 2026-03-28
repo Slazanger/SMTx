@@ -3,9 +3,13 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using EVEStandard.Models;
 using ReactiveUI;
 using System.Reactive.Linq;
 using SMTx.Eve;
@@ -73,10 +77,16 @@ public class MainViewModel : ViewModelBase
     private ObservableCollection<EvePilotRow> _evePilots = new();
     private EvePilotRow? _selectedEvePilot;
     private string _eveStatus = "";
+    private CancellationTokenSource? _detailLoadCts;
+    private readonly HttpClient _eveImageHttp = CreateEveImageHttpClient();
+
+    public EveCharacterDetailViewModel Detail { get; } = new();
 
     public bool IsEveAvailable => EveRuntime.IsAvailable;
 
     public bool IsEveUnavailable => !IsEveAvailable;
+
+    public bool HasEvePilotSelection => SelectedEvePilot != null;
 
     public ObservableCollection<EvePilotRow> EvePilots
     {
@@ -205,6 +215,7 @@ public class MainViewModel : ViewModelBase
                 this.WhenAnyValue(x => x.SelectedEvePilot).Select(p => p != null));
             LogoutAllEveCommand = ReactiveCommand.CreateFromTask(LogoutAllEveAsync);
             ProbeEsiCommand = ReactiveCommand.CreateFromTask(ProbeEsiAsync);
+            this.WhenAnyValue(x => x.SelectedEvePilot).Subscribe(OnSelectedEvePilotChanged);
             SeedMockHomeLists();
             _selectedShellTabOption = ShellTabOptions[0];
             System.Diagnostics.Debug.WriteLine("MainViewModel constructor completed");
@@ -318,9 +329,11 @@ public class MainViewModel : ViewModelBase
 
     public void RefreshEveCharacters()
     {
+        var previousId = SelectedEvePilot?.CharacterId;
         EvePilots.Clear();
         if (!EveRuntime.IsAvailable || EveRuntime.Store == null)
         {
+            SelectedEvePilot = null;
             this.RaisePropertyChanged(nameof(IsEveAvailable));
             this.RaisePropertyChanged(nameof(IsEveUnavailable));
             return;
@@ -330,6 +343,14 @@ public class MainViewModel : ViewModelBase
             EvePilots.Add(new EvePilotRow(r.CharacterId, string.IsNullOrEmpty(r.CharacterName) ? r.CharacterId.ToString() : r.CharacterName));
         this.RaisePropertyChanged(nameof(IsEveAvailable));
         this.RaisePropertyChanged(nameof(IsEveUnavailable));
+
+        var restored = previousId is { } id ? EvePilots.FirstOrDefault(p => p.CharacterId == id) : null;
+        if (restored != null)
+            SelectedEvePilot = restored;
+        else if (EvePilots.Count > 0)
+            SelectedEvePilot = EvePilots[0];
+        else
+            SelectedEvePilot = null;
     }
 
     private async Task AddEveCharacterAsync()
@@ -410,6 +431,184 @@ public class MainViewModel : ViewModelBase
         catch (Exception ex)
         {
             EveStatus = $"ESI error: {ex.Message}";
+        }
+    }
+
+    private static HttpClient CreateEveImageHttpClient()
+    {
+        var c = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
+        c.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "SMTx/1.0");
+        return c;
+    }
+
+    private void OnSelectedEvePilotChanged(EvePilotRow? pilot)
+    {
+        this.RaisePropertyChanged(nameof(HasEvePilotSelection));
+        _detailLoadCts?.Cancel();
+        _detailLoadCts?.Dispose();
+        _detailLoadCts = null;
+
+        if (pilot == null)
+        {
+            Detail.ClearSelection();
+            return;
+        }
+
+        Detail.BeginLoad(pilot);
+        var cts = new CancellationTokenSource();
+        _detailLoadCts = cts;
+        _ = LoadCharacterDetailAsync(pilot, cts.Token);
+    }
+
+    private static string EvePortraitUrl(long characterId) =>
+        $"https://images.evetech.net/characters/{characterId}/portrait?tenant=tranquility&size=256";
+
+    private static string EveCorporationLogoUrl(long corporationId) =>
+        $"https://images.evetech.net/corporations/{corporationId}/logo?tenant=tranquility&size=128";
+
+    private static string EveAllianceLogoUrl(long allianceId) =>
+        $"https://images.evetech.net/alliances/{allianceId}/logo?tenant=tranquility&size=128";
+
+    private static async Task<byte[]?> DownloadImageBytesAsync(HttpClient http, string url, CancellationToken ct)
+    {
+        try
+        {
+            using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+                return null;
+            return await response.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private async Task LoadCharacterDetailAsync(EvePilotRow pilot, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (EveRuntime.Esi == null)
+            {
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    if (!cancellationToken.IsCancellationRequested)
+                        Detail.SetFailed("ESI not available.");
+                });
+                return;
+            }
+
+            var charInfo = await EveRuntime.Esi.GetCharacterPublicInfoAsync(pilot.CharacterId, cancellationToken)
+                .ConfigureAwait(false);
+
+            CorporationInfo? corp = null;
+            if (charInfo.CorporationId > 0)
+            {
+                try
+                {
+                    corp = await EveRuntime.Esi
+                        .GetCorporationPublicInfoAsync((int)charInfo.CorporationId, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Public corp info is best-effort for the detail panel.
+                }
+            }
+
+            Alliance? alliance = null;
+            if (charInfo.AllianceId is { } allianceId && allianceId > 0)
+            {
+                try
+                {
+                    alliance = await EveRuntime.Esi.GetAlliancePublicInfoAsync((int)allianceId, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Best-effort.
+                }
+            }
+
+            var portraitTask = DownloadImageBytesAsync(_eveImageHttp, EvePortraitUrl(pilot.CharacterId), cancellationToken);
+            var corpLogoTask = charInfo.CorporationId > 0
+                ? DownloadImageBytesAsync(_eveImageHttp, EveCorporationLogoUrl(charInfo.CorporationId), cancellationToken)
+                : Task.FromResult<byte[]?>(null);
+            var allianceLogoTask = charInfo.AllianceId is { } aid && aid > 0
+                ? DownloadImageBytesAsync(_eveImageHttp, EveAllianceLogoUrl(aid), cancellationToken)
+                : Task.FromResult<byte[]?>(null);
+
+            await Task.WhenAll(portraitTask, corpLogoTask, allianceLogoTask).ConfigureAwait(false);
+
+            if (cancellationToken.IsCancellationRequested)
+                return;
+
+            var portraitBytes = await portraitTask.ConfigureAwait(false);
+            var corpLogoBytes = await corpLogoTask.ConfigureAwait(false);
+            var allianceLogoBytes = await allianceLogoTask.ConfigureAwait(false);
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (cancellationToken.IsCancellationRequested)
+                    return;
+
+                static Bitmap? Decode(byte[]? bytes)
+                {
+                    if (bytes == null || bytes.Length == 0)
+                        return null;
+                    try
+                    {
+                        using var ms = new MemoryStream(bytes);
+                        return new Bitmap(ms);
+                    }
+                    catch
+                    {
+                        return null;
+                    }
+                }
+
+                var portraitBmp = Decode(portraitBytes);
+                var corpBmp = Decode(corpLogoBytes);
+                var allianceBmp = Decode(allianceLogoBytes);
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    portraitBmp?.Dispose();
+                    corpBmp?.Dispose();
+                    allianceBmp?.Dispose();
+                    return;
+                }
+
+                var corpLine = corp != null ? $"{corp.Name} [{corp.Ticker}]" : "";
+                var allianceLine = alliance != null ? $"{alliance.Name} [{alliance.Ticker}]" : "";
+
+                Detail.ApplyLoaded(
+                    charInfo.Name,
+                    pilot.CharacterId,
+                    corpLine,
+                    corp != null,
+                    allianceLine,
+                    alliance != null,
+                    portraitBmp,
+                    corpBmp,
+                    allianceBmp);
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            // Selection changed; new load superseded this one.
+        }
+        catch (Exception ex)
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (!cancellationToken.IsCancellationRequested)
+                    Detail.SetFailed(ex.Message);
+            });
         }
     }
 
