@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -11,6 +12,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using EVEStandard.Models;
 using ReactiveUI;
+using SMTx.Eve.Connectors;
 using System.Reactive.Linq;
 using SMTx.Eve;
 using SMTx.Models;
@@ -81,6 +83,8 @@ public class MainViewModel : ViewModelBase
     private readonly HttpClient _eveImageHttp = CreateEveImageHttpClient();
 
     public EveCharacterDetailViewModel Detail { get; } = new();
+
+    public EveCharacterClonesViewModel Clones { get; } = new();
 
     public bool IsEveAvailable => EveRuntime.IsAvailable;
 
@@ -451,10 +455,12 @@ public class MainViewModel : ViewModelBase
         if (pilot == null)
         {
             Detail.ClearSelection();
+            Clones.Clear();
             return;
         }
 
         Detail.BeginLoad(pilot);
+        Clones.BeginLoad();
         var cts = new CancellationTokenSource();
         _detailLoadCts = cts;
         _ = LoadCharacterDetailAsync(pilot, cts.Token);
@@ -497,7 +503,10 @@ public class MainViewModel : ViewModelBase
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     if (!cancellationToken.IsCancellationRequested)
+                    {
                         Detail.SetFailed("ESI not available.");
+                        Clones.Apply(new ClonePanelState([], "ESI not available."));
+                    }
                 });
                 return;
             }
@@ -542,8 +551,10 @@ public class MainViewModel : ViewModelBase
                 ? DownloadImageBytesAsync(_eveImageHttp, EveAllianceLogoUrl(aid), cancellationToken)
                 : Task.FromResult<byte[]?>(null);
             var locationShipTask = BuildLocationAndShipLinesAsync(pilot.CharacterId, cancellationToken);
+            var clonePanelTask = BuildClonePanelAsync(pilot.CharacterId, cancellationToken);
 
-            await Task.WhenAll(portraitTask, corpLogoTask, allianceLogoTask, locationShipTask).ConfigureAwait(false);
+            await Task.WhenAll(portraitTask, corpLogoTask, allianceLogoTask, locationShipTask, clonePanelTask)
+                .ConfigureAwait(false);
 
             if (cancellationToken.IsCancellationRequested)
                 return;
@@ -552,6 +563,7 @@ public class MainViewModel : ViewModelBase
             var corpLogoBytes = await corpLogoTask.ConfigureAwait(false);
             var allianceLogoBytes = await allianceLogoTask.ConfigureAwait(false);
             var (locationLine, shipLine) = await locationShipTask.ConfigureAwait(false);
+            var cloneState = await clonePanelTask.ConfigureAwait(false);
 
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
@@ -600,6 +612,8 @@ public class MainViewModel : ViewModelBase
                     portraitBmp,
                     corpBmp,
                     allianceBmp);
+
+                Clones.Apply(cloneState);
             });
         }
         catch (OperationCanceledException)
@@ -611,9 +625,134 @@ public class MainViewModel : ViewModelBase
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 if (!cancellationToken.IsCancellationRequested)
+                {
                     Detail.SetFailed(ex.Message);
+                    Clones.Apply(new ClonePanelState([], ex.Message));
+                }
             });
         }
+    }
+
+    private async Task<ClonePanelState> BuildClonePanelAsync(long characterId, CancellationToken cancellationToken)
+    {
+        if (EveRuntime.Esi == null || EveRuntime.Store?.Get(characterId) == null)
+            return new ClonePanelState([], null);
+
+        var esi = EveRuntime.Esi;
+
+        EVEStandard.Models.Clones? esiClones = null;
+        string? status = null;
+        try
+        {
+            esiClones = await esi.GetCharacterClonesAsync(characterId, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            status = $"Clones unavailable ({ex.Message}). Add esi-clones.read_clones.v1 and sign in again.";
+        }
+
+        IReadOnlyList<long> activeImplantIds = Array.Empty<long>();
+        try
+        {
+            activeImplantIds = await esi.GetCharacterActiveImplantTypeIdsAsync(characterId, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch
+        {
+            // Active implants are optional if esi-clones.read_implants.v1 is missing.
+        }
+
+        if (esiClones == null)
+            return new ClonePanelState([], status);
+
+        var builds = new List<(string Title, string LocationText, List<long> ImplantIds)>();
+
+        var home = esiClones.HomeLocation;
+        if (home?.LocationId is { } homeLocId)
+        {
+            var locText = await ResolveCloneLocationLineAsync(esi, characterId, homeLocId, home.LocationType, cancellationToken)
+                .ConfigureAwait(false);
+            builds.Add(("Medical clone (home)", locText, activeImplantIds.ToList()));
+        }
+        else if (activeImplantIds.Count > 0)
+            builds.Add(("Active body", "—", activeImplantIds.ToList()));
+
+        foreach (var jc in esiClones.JumpClones ?? new List<JumpClone>())
+        {
+            var title = string.IsNullOrWhiteSpace(jc.Name) ? $"Jump clone #{jc.JumpCloneId}" : jc.Name.Trim();
+            var locText = await ResolveCloneLocationLineAsync(esi, characterId, jc.LocationId, jc.LocationType, cancellationToken)
+                .ConfigureAwait(false);
+            builds.Add((title, locText, jc.Implants?.ToList() ?? new List<long>()));
+        }
+
+        var distinctIds = builds.SelectMany(b => b.ImplantIds).Distinct().ToList();
+        var namesById = await ResolveImplantTypeNamesAsync(esi, distinctIds, cancellationToken).ConfigureAwait(false);
+
+        var rows = builds
+            .Select(b => new CloneRowDto(b.Title, b.LocationText, FormatImplantLines(b.ImplantIds, namesById)))
+            .ToList();
+
+        return new ClonePanelState(rows, status);
+    }
+
+    private static async Task<string> ResolveCloneLocationLineAsync(
+        EsiClientFacade esi,
+        long characterId,
+        long locationId,
+        string? locationType,
+        CancellationToken cancellationToken)
+    {
+        var t = locationType?.Trim().ToLowerInvariant() ?? "";
+        if (t == "station")
+            return await esi.GetStationNameAsync(locationId, cancellationToken).ConfigureAwait(false)
+                   ?? $"Station {locationId}";
+        if (t == "structure")
+            return await esi.GetStructureNameAsync(characterId, locationId, cancellationToken).ConfigureAwait(false)
+                   ?? $"Structure {locationId}";
+        if (string.IsNullOrEmpty(t))
+            return $"Location {locationId}";
+        return $"{t} {locationId}";
+    }
+
+    private static async Task<IReadOnlyDictionary<long, string>> ResolveImplantTypeNamesAsync(
+        EsiClientFacade esi,
+        List<long> distinctTypeIds,
+        CancellationToken cancellationToken)
+    {
+        var map = new ConcurrentDictionary<long, string>();
+        if (distinctTypeIds.Count == 0)
+            return map;
+
+        await Task.WhenAll(distinctTypeIds.Select(async typeId =>
+        {
+            try
+            {
+                var name = await esi.GetShipTypeNameAsync(typeId, cancellationToken).ConfigureAwait(false)
+                           ?? $"Type {typeId}";
+                map[typeId] = name;
+            }
+            catch
+            {
+                map.TryAdd(typeId, $"Type {typeId}");
+            }
+        })).ConfigureAwait(false);
+
+        return map;
+    }
+
+    private static string FormatImplantLines(IReadOnlyList<long> typeIds, IReadOnlyDictionary<long, string> namesById)
+    {
+        if (typeIds.Count == 0)
+            return "—";
+        var lines = typeIds
+            .Select(id => namesById.TryGetValue(id, out var n) ? n : $"Type {id}")
+            .Distinct()
+            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase);
+        return string.Join(Environment.NewLine, lines);
     }
 
     private async Task<(string LocationLine, string ShipLine)> BuildLocationAndShipLinesAsync(long characterId, CancellationToken cancellationToken)

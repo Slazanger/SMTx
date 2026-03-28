@@ -31,7 +31,7 @@
                  Foreground="#9AD"
                  TextWrapping="Wrap" />
 
-      <Grid ColumnDefinitions="280,*" MinHeight="280">
+      <Grid ColumnDefinitions="280,*,280" MinHeight="280">
         <ListBox Grid.Column="0"
                  ItemsSource="{Binding EvePilots}"
                  SelectedItem="{Binding SelectedEvePilot}"
@@ -43,101 +43,161 @@
           </ListBox.ItemTemplate>
         </ListBox>
 
-        <Panel Grid.Column="1" Margin="20,0,0,0">
-          <TextBlock Text="Select a pilot from the list."
-                     Foreground="#8B949E"
-                     VerticalAlignment="Center"
-                     HorizontalAlignment="Center"
-                     TextWrapping="Wrap"
-                     IsVisible="{Binding !HasEvePilotSelection}" />
+        <TextBlock Grid.Column="1"
+                   Grid.ColumnSpan="2"
+                   Margin="20,0,0,0"
+                   Text="Select a pilot from the list."
+                   Foreground="#8B949E"
+                   VerticalAlignment="Center"
+                   HorizontalAlignment="Center"
+                   TextWrapping="Wrap"
+                   IsVisible="{Binding !HasEvePilotSelection}" />
 
-          <Border Background="#161B22"
-                  CornerRadius="8"
-                  Padding="16"
-                  IsVisible="{Binding HasEvePilotSelection}">
-            <ScrollViewer MaxHeight="520">
-              <StackPanel x:DataType="vm:EveCharacterDetailViewModel"
-                          DataContext="{Binding Detail}"
-                          Spacing="10">
-                <TextBlock Text="{Binding LoadError}"
-                           Foreground="#F85149"
-                           TextWrapping="Wrap"
-                           IsVisible="{Binding HasLoadError}" />
-                <TextBlock Text="Loading character details…"
-                           Foreground="#8B949E"
-                           IsVisible="{Binding IsLoading}" />
-                <StackPanel Spacing="12" IsVisible="{Binding IsDetailReady}">
-                  <StackPanel Orientation="Horizontal" Spacing="16">
-                    <Image Width="96"
-                           Height="96"
-                           Source="{Binding Portrait}"
+        <Border Grid.Column="1"
+                Margin="20,0,12,0"
+                Background="#161B22"
+                CornerRadius="8"
+                Padding="16"
+                IsVisible="{Binding HasEvePilotSelection}">
+          <ScrollViewer MaxHeight="520">
+            <StackPanel x:DataType="vm:EveCharacterDetailViewModel"
+                        DataContext="{Binding Detail}"
+                        Spacing="10">
+              <TextBlock Text="{Binding LoadError}"
+                         Foreground="#F85149"
+                         TextWrapping="Wrap"
+                         IsVisible="{Binding HasLoadError}" />
+              <TextBlock Text="Loading character details…"
+                         Foreground="#8B949E"
+                         IsVisible="{Binding IsLoading}" />
+              <StackPanel Spacing="12" IsVisible="{Binding IsDetailReady}">
+                <StackPanel Orientation="Horizontal" Spacing="16">
+                  <Image Width="96"
+                         Height="96"
+                         Source="{Binding Portrait}"
+                         Stretch="Uniform" />
+                  <StackPanel VerticalAlignment="Center" Spacing="4">
+                    <TextBlock Text="{Binding CharacterName}"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="#E6EDF3" />
+                    <TextBlock Foreground="#8B949E">
+                      <Run Text="Character ID " />
+                      <Run Text="{Binding CharacterIdText}" />
+                    </TextBlock>
+                  </StackPanel>
+                </StackPanel>
+
+                <StackPanel Spacing="6" IsVisible="{Binding HasCorporation}">
+                  <TextBlock Text="Corporation"
+                             FontWeight="SemiBold"
+                             Foreground="#E6EDF3" />
+                  <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Image Width="48"
+                           Height="48"
+                           Source="{Binding CorporationLogo}"
                            Stretch="Uniform" />
-                    <StackPanel VerticalAlignment="Center" Spacing="4">
-                      <TextBlock Text="{Binding CharacterName}"
-                                 FontSize="18"
-                                 FontWeight="SemiBold"
-                                 Foreground="#E6EDF3" />
-                      <TextBlock Foreground="#8B949E">
-                        <Run Text="Character ID " />
-                        <Run Text="{Binding CharacterIdText}" />
-                      </TextBlock>
-                    </StackPanel>
-                  </StackPanel>
-
-                  <StackPanel Spacing="6" IsVisible="{Binding HasCorporation}">
-                    <TextBlock Text="Corporation"
-                               FontWeight="SemiBold"
-                               Foreground="#E6EDF3" />
-                    <StackPanel Orientation="Horizontal" Spacing="12">
-                      <Image Width="48"
-                             Height="48"
-                             Source="{Binding CorporationLogo}"
-                             Stretch="Uniform" />
-                      <TextBlock Text="{Binding CorporationLine}"
-                                 Foreground="#C9D1D9"
-                                 VerticalAlignment="Center"
-                                 TextWrapping="Wrap" />
-                    </StackPanel>
-                  </StackPanel>
-
-                  <StackPanel Spacing="6" IsVisible="{Binding HasAlliance}">
-                    <TextBlock Text="Alliance"
-                               FontWeight="SemiBold"
-                               Foreground="#E6EDF3" />
-                    <StackPanel Orientation="Horizontal" Spacing="12">
-                      <Image Width="48"
-                             Height="48"
-                             Source="{Binding AllianceLogo}"
-                             Stretch="Uniform" />
-                      <TextBlock Text="{Binding AllianceLine}"
-                                 Foreground="#C9D1D9"
-                                 VerticalAlignment="Center"
-                                 TextWrapping="Wrap" />
-                    </StackPanel>
-                  </StackPanel>
-
-                  <StackPanel Spacing="6" IsVisible="{Binding HasLocation}">
-                    <TextBlock Text="Location"
-                               FontWeight="SemiBold"
-                               Foreground="#E6EDF3" />
-                    <TextBlock Text="{Binding LocationLine}"
+                    <TextBlock Text="{Binding CorporationLine}"
                                Foreground="#C9D1D9"
-                               TextWrapping="Wrap" />
-                  </StackPanel>
-
-                  <StackPanel Spacing="6" IsVisible="{Binding HasShip}">
-                    <TextBlock Text="Ship"
-                               FontWeight="SemiBold"
-                               Foreground="#E6EDF3" />
-                    <TextBlock Text="{Binding ShipLine}"
-                               Foreground="#C9D1D9"
+                               VerticalAlignment="Center"
                                TextWrapping="Wrap" />
                   </StackPanel>
                 </StackPanel>
+
+                <StackPanel Spacing="6" IsVisible="{Binding HasAlliance}">
+                  <TextBlock Text="Alliance"
+                             FontWeight="SemiBold"
+                             Foreground="#E6EDF3" />
+                  <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Image Width="48"
+                           Height="48"
+                           Source="{Binding AllianceLogo}"
+                           Stretch="Uniform" />
+                    <TextBlock Text="{Binding AllianceLine}"
+                               Foreground="#C9D1D9"
+                               VerticalAlignment="Center"
+                               TextWrapping="Wrap" />
+                  </StackPanel>
+                </StackPanel>
+
+                <StackPanel Spacing="6" IsVisible="{Binding HasLocation}">
+                  <TextBlock Text="Location"
+                             FontWeight="SemiBold"
+                             Foreground="#E6EDF3" />
+                  <TextBlock Text="{Binding LocationLine}"
+                             Foreground="#C9D1D9"
+                             TextWrapping="Wrap" />
+                </StackPanel>
+
+                <StackPanel Spacing="6" IsVisible="{Binding HasShip}">
+                  <TextBlock Text="Ship"
+                             FontWeight="SemiBold"
+                             Foreground="#E6EDF3" />
+                  <TextBlock Text="{Binding ShipLine}"
+                             Foreground="#C9D1D9"
+                             TextWrapping="Wrap" />
+                </StackPanel>
               </StackPanel>
-            </ScrollViewer>
-          </Border>
-        </Panel>
+            </StackPanel>
+          </ScrollViewer>
+        </Border>
+
+        <Border Grid.Column="2"
+                Background="#161B22"
+                CornerRadius="8"
+                Padding="16"
+                IsVisible="{Binding HasEvePilotSelection}">
+          <ScrollViewer MaxHeight="520">
+            <StackPanel x:DataType="vm:EveCharacterClonesViewModel"
+                        DataContext="{Binding Clones}"
+                        Spacing="10">
+              <TextBlock Text="Clones"
+                         FontSize="16"
+                         FontWeight="SemiBold"
+                         Foreground="#E6EDF3" />
+              <TextBlock Text="Loading clones…"
+                         Foreground="#8B949E"
+                         IsVisible="{Binding IsLoading}" />
+              <TextBlock Text="{Binding StatusMessage}"
+                         Foreground="#F85149"
+                         TextWrapping="Wrap"
+                         IsVisible="{Binding HasStatusMessage}" />
+              <TextBlock Text="No clone data returned."
+                         Foreground="#8B949E"
+                         TextWrapping="Wrap"
+                         IsVisible="{Binding ShowEmptyHint}" />
+              <ItemsControl ItemsSource="{Binding Rows}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate DataType="vm:EveCloneRowViewModel">
+                    <Border Margin="0,0,0,12"
+                            Padding="0,0,0,12"
+                            BorderBrush="#30363D"
+                            BorderThickness="0,0,0,1">
+                      <StackPanel Spacing="6">
+                        <TextBlock Text="{Binding Title}"
+                                   FontWeight="SemiBold"
+                                   Foreground="#E6EDF3"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Foreground="#8B949E"
+                                   FontSize="12"
+                                   Text="Location" />
+                        <TextBlock Text="{Binding LocationText}"
+                                   Foreground="#C9D1D9"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Foreground="#8B949E"
+                                   FontSize="12"
+                                   Text="Implants" />
+                        <TextBlock Text="{Binding ImplantsText}"
+                                   Foreground="#C9D1D9"
+                                   TextWrapping="Wrap" />
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </ScrollViewer>
+        </Border>
       </Grid>
     </DockPanel>
   </Panel>

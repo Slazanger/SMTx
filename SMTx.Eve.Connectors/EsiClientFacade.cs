@@ -96,6 +96,25 @@ public sealed class EsiClientFacade
         return dto.Model?.Name;
     }
 
+    public async Task<Clones> GetCharacterClonesAsync(long characterId, CancellationToken cancellationToken = default)
+    {
+        var auth = await CreateAuthAsync(characterId, cancellationToken).ConfigureAwait(false);
+        var dto = await Api.Clones.GetClonesAsync(auth, ifNoneMatch: null).ConfigureAwait(false);
+        // EVEStandard 4.0.2 types ESIModelDTO with the API Clones class by mistake; runtime payload is Models.Clones.
+        object? raw = dto.Model;
+        if (raw is Clones model)
+            return model;
+        throw new InvalidOperationException(
+            $"EVE clones response was {raw?.GetType().FullName ?? "null"}, expected {typeof(Clones).FullName}.");
+    }
+
+    public async Task<IReadOnlyList<long>> GetCharacterActiveImplantTypeIdsAsync(long characterId, CancellationToken cancellationToken = default)
+    {
+        var auth = await CreateAuthAsync(characterId, cancellationToken).ConfigureAwait(false);
+        var dto = await Api.Clones.GetActiveImplantsAsync(auth, ifNoneMatch: null).ConfigureAwait(false);
+        return dto.Model ?? new List<long>();
+    }
+
     /// <summary>Builds <see cref="AuthDTO"/> for EVEStandard; refreshes access token if near expiry.</summary>
     public async Task<AuthDTO> CreateAuthAsync(long characterId, CancellationToken cancellationToken = default)
     {
