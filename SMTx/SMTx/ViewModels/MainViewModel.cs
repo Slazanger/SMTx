@@ -541,8 +541,9 @@ public class MainViewModel : ViewModelBase
             var allianceLogoTask = charInfo.AllianceId is { } aid && aid > 0
                 ? DownloadImageBytesAsync(_eveImageHttp, EveAllianceLogoUrl(aid), cancellationToken)
                 : Task.FromResult<byte[]?>(null);
+            var locationShipTask = BuildLocationAndShipLinesAsync(pilot.CharacterId, cancellationToken);
 
-            await Task.WhenAll(portraitTask, corpLogoTask, allianceLogoTask).ConfigureAwait(false);
+            await Task.WhenAll(portraitTask, corpLogoTask, allianceLogoTask, locationShipTask).ConfigureAwait(false);
 
             if (cancellationToken.IsCancellationRequested)
                 return;
@@ -550,6 +551,7 @@ public class MainViewModel : ViewModelBase
             var portraitBytes = await portraitTask.ConfigureAwait(false);
             var corpLogoBytes = await corpLogoTask.ConfigureAwait(false);
             var allianceLogoBytes = await allianceLogoTask.ConfigureAwait(false);
+            var (locationLine, shipLine) = await locationShipTask.ConfigureAwait(false);
 
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
@@ -593,6 +595,8 @@ public class MainViewModel : ViewModelBase
                     corp != null,
                     allianceLine,
                     alliance != null,
+                    locationLine,
+                    shipLine,
                     portraitBmp,
                     corpBmp,
                     allianceBmp);
@@ -610,6 +614,63 @@ public class MainViewModel : ViewModelBase
                     Detail.SetFailed(ex.Message);
             });
         }
+    }
+
+    private async Task<(string LocationLine, string ShipLine)> BuildLocationAndShipLinesAsync(long characterId, CancellationToken cancellationToken)
+    {
+        if (EveRuntime.Esi == null || EveRuntime.Store?.Get(characterId) == null)
+            return ("", "");
+
+        var esi = EveRuntime.Esi;
+
+        var locationLine = "";
+        try
+        {
+            var loc = await esi.GetCharacterLocationAsync(characterId, cancellationToken).ConfigureAwait(false);
+            var sysName = await esi.GetSolarSystemNameAsync(loc.SolarSystemId, cancellationToken).ConfigureAwait(false)
+                          ?? $"System {loc.SolarSystemId}";
+            if (loc.StationId is { } stationId)
+            {
+                var stationName = await esi.GetStationNameAsync(stationId, cancellationToken).ConfigureAwait(false)
+                                  ?? $"Station {stationId}";
+                locationLine = $"{sysName} — Docked at {stationName}";
+            }
+            else if (loc.StructureId is { } structureId)
+            {
+                var structureName = await esi.GetStructureNameAsync(characterId, structureId, cancellationToken).ConfigureAwait(false)
+                                    ?? $"Structure {structureId}";
+                locationLine = $"{sysName} — {structureName}";
+            }
+            else
+                locationLine = $"{sysName} (in space)";
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch
+        {
+            locationLine = "Location unavailable (sign in again or add esi-location.read_location.v1).";
+        }
+
+        var shipLine = "";
+        try
+        {
+            var ship = await esi.GetCurrentShipAsync(characterId, cancellationToken).ConfigureAwait(false);
+            var typeName = await esi.GetShipTypeNameAsync(ship.ShipTypeId, cancellationToken).ConfigureAwait(false)
+                           ?? $"Type {ship.ShipTypeId}";
+            shipLine = string.IsNullOrWhiteSpace(ship.ShipName) ? typeName : $"{ship.ShipName} ({typeName})";
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch
+        {
+            shipLine = "Ship unavailable (sign in again or add esi-ship.read_ship.v1).";
+        }
+
+        return (locationLine, shipLine);
     }
 
     private static IDataService CreateDefaultDataService()

@@ -54,6 +54,48 @@ public sealed class EsiClientFacade
         return dto.Model;
     }
 
+    public async Task<CharacterLocation> GetCharacterLocationAsync(long characterId, CancellationToken cancellationToken = default)
+    {
+        var auth = await CreateAuthAsync(characterId, cancellationToken).ConfigureAwait(false);
+        var dto = await Api.Location.GetCharacterLocationAsync(auth, ifNoneMatch: null).ConfigureAwait(false);
+        return dto.Model;
+    }
+
+    public async Task<CharacterShip> GetCurrentShipAsync(long characterId, CancellationToken cancellationToken = default)
+    {
+        var auth = await CreateAuthAsync(characterId, cancellationToken).ConfigureAwait(false);
+        var dto = await Api.Location.GetCurrentShipAsync(auth, ifNoneMatch: null).ConfigureAwait(false);
+        return dto.Model;
+    }
+
+    public async Task<string?> GetSolarSystemNameAsync(long solarSystemId, CancellationToken cancellationToken = default)
+    {
+        _ = cancellationToken;
+        var dto = await Api.Universe.GetSolarSystemInfoAsync(solarSystemId, language: null, ifNoneMatch: null).ConfigureAwait(false);
+        return dto.Model?.Name;
+    }
+
+    public async Task<string?> GetStationNameAsync(long stationId, CancellationToken cancellationToken = default)
+    {
+        _ = cancellationToken;
+        var dto = await Api.Universe.GetStationInfoAsync(stationId, ifNoneMatch: null).ConfigureAwait(false);
+        return dto.Model?.Name;
+    }
+
+    public async Task<string?> GetStructureNameAsync(long characterId, long structureId, CancellationToken cancellationToken = default)
+    {
+        var auth = await CreateAuthAsync(characterId, cancellationToken).ConfigureAwait(false);
+        var dto = await Api.Universe.GetStructureInfoAsync(auth, structureId, ifNoneMatch: null).ConfigureAwait(false);
+        return dto.Model?.Name;
+    }
+
+    public async Task<string?> GetShipTypeNameAsync(long typeId, CancellationToken cancellationToken = default)
+    {
+        _ = cancellationToken;
+        var dto = await Api.Universe.GetTypeInfoAsync(typeId, language: null, ifNoneMatch: null).ConfigureAwait(false);
+        return dto.Model?.Name;
+    }
+
     /// <summary>Builds <see cref="AuthDTO"/> for EVEStandard; refreshes access token if near expiry.</summary>
     public async Task<AuthDTO> CreateAuthAsync(long characterId, CancellationToken cancellationToken = default)
     {

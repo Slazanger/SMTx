@@ -1,4 +1,5 @@
 using System.Net.Http;
+using System.Reflection;
 using System.Text.Json;
 using EVEStandard;
 using EVEStandard.Enumerations;
@@ -51,14 +52,34 @@ public sealed class EveSsoService
 
     private SSOv2 CreateSso()
     {
-        // EVEStandard 4.x SSOv2 only assigns its static HttpClient when the ctor's httpClient argument is null.
-        // Passing our injected client leaves that field unset → NullReferenceException inside VerifyAuthorizationForPKCEAuthAsync.
-        return new SSOv2(
-            _esiOptions.Value.DataSource,
-            _oauthOptions.Value.RedirectUri,
-            _oauthOptions.Value.ClientId,
-            string.IsNullOrWhiteSpace(_oauthOptions.Value.ClientSecret) ? null : _oauthOptions.Value.ClientSecret,
+        // EVEStandard 4.0.2: SSOv2 stores HttpClient in a private static field _httpClient.
+        // - ctor(httpClient: null) assigns _httpClient = new HttpClient().
+        // - ctor(httpClient: injected) does NOT assign _httpClient → stays null → NRE in GetCharacterDetailsAsync
+        //   and in VerifyAuthorizationForPKCEAuthAsync if those paths run before a null-ctor ran.
+        // After construction, force the static client to our injected _http (User-Agent, timeout).
+        var oauth = _oauthOptions.Value;
+        var esi = _esiOptions.Value;
+        var sso = new SSOv2(
+            esi.DataSource,
+            oauth.RedirectUri,
+            oauth.ClientId,
+            string.IsNullOrWhiteSpace(oauth.ClientSecret) ? null : oauth.ClientSecret,
             httpClient: null);
+
+        var staticHttp = typeof(SSOv2).GetField("_httpClient", BindingFlags.NonPublic | BindingFlags.Static);
+        if (staticHttp != null)
+        {
+            var previous = staticHttp.GetValue(null) as HttpClient;
+            staticHttp.SetValue(null, _http);
+            if (previous is { } p && !ReferenceEquals(p, _http))
+                p.Dispose();
+        }
+        else
+        {
+            _logger.LogWarning("EVEStandard SSOv2: could not find static _httpClient field; SSO may throw NullReferenceException after package upgrade.");
+        }
+
+        return sso;
     }
 
     /// <summary>Desktop / mobile: run full PKCE login and persist the character session.</summary>

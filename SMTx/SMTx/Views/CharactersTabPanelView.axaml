@@ -115,6 +115,24 @@
                                  TextWrapping="Wrap" />
                     </StackPanel>
                   </StackPanel>
+
+                  <StackPanel Spacing="6" IsVisible="{Binding HasLocation}">
+                    <TextBlock Text="Location"
+                               FontWeight="SemiBold"
+                               Foreground="#E6EDF3" />
+                    <TextBlock Text="{Binding LocationLine}"
+                               Foreground="#C9D1D9"
+                               TextWrapping="Wrap" />
+                  </StackPanel>
+
+                  <StackPanel Spacing="6" IsVisible="{Binding HasShip}">
+                    <TextBlock Text="Ship"
+                               FontWeight="SemiBold"
+                               Foreground="#E6EDF3" />
+                    <TextBlock Text="{Binding ShipLine}"
+                               Foreground="#C9D1D9"
+                               TextWrapping="Wrap" />
+                  </StackPanel>
                 </StackPanel>
               </StackPanel>
             </ScrollViewer>
