@@ -17,7 +17,6 @@ public sealed class EveSsoService
     private readonly IOptions<EveEsiOptions> _esiOptions;
     private readonly ICharacterSessionStore _store;
     private readonly ILogger<EveSsoService> _logger;
-    private readonly HttpClient _http;
     private readonly IEveAuthorizationUiCoordinator? _uiCoordinator;
     private readonly IBrowserOAuthPkceStore? _browserPkce;
     private readonly bool _useBrowserSplitFlow;
@@ -30,7 +29,6 @@ public sealed class EveSsoService
         IOptions<EveEsiOptions> esiOptions,
         ICharacterSessionStore store,
         ILogger<EveSsoService> logger,
-        HttpClient http,
         IEveAuthorizationUiCoordinator? uiCoordinator = null,
         IBrowserOAuthPkceStore? browserPkce = null,
         bool useBrowserSplitFlow = false)
@@ -39,15 +37,22 @@ public sealed class EveSsoService
         _esiOptions = esiOptions;
         _store = store;
         _logger = logger;
-        _http = http;
         _uiCoordinator = uiCoordinator;
         _browserPkce = browserPkce;
         _useBrowserSplitFlow = useBrowserSplitFlow;
     }
 
-    private SSOv2 CreateSso() =>
-        new(_esiOptions.Value.DataSource, _oauthOptions.Value.RedirectUri, _oauthOptions.Value.ClientId,
-            string.IsNullOrWhiteSpace(_oauthOptions.Value.ClientSecret) ? null : _oauthOptions.Value.ClientSecret, _http);
+    private SSOv2 CreateSso()
+    {
+        // EVEStandard 4.x SSOv2 only assigns its static HttpClient when the ctor's httpClient argument is null.
+        // Passing our injected client leaves that field unset → NullReferenceException inside VerifyAuthorizationForPKCEAuthAsync.
+        return new SSOv2(
+            _esiOptions.Value.DataSource,
+            _oauthOptions.Value.RedirectUri,
+            _oauthOptions.Value.ClientId,
+            string.IsNullOrWhiteSpace(_oauthOptions.Value.ClientSecret) ? null : _oauthOptions.Value.ClientSecret,
+            httpClient: null);
+    }
 
     /// <summary>Desktop / mobile: run full PKCE login and persist the character session.</summary>
     public async Task<EveCharacterSummary?> AddCharacterAsync(CancellationToken cancellationToken = default)

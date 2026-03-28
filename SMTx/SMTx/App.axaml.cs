@@ -28,7 +28,14 @@ public partial class App : Application
     public override void OnFrameworkInitializationCompleted()
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-            _ = StartDesktopWithEveAsync(desktop);
+        {
+            // MainWindow must exist before base.OnFrameworkInitializationCompleted(); otherwise the
+            // classic desktop lifetime can exit immediately while EVE init still runs asynchronously.
+            var dataService = CreateDesktopDataService();
+            var viewModel = new MainViewModel(dataService);
+            desktop.MainWindow = new MainWindow { DataContext = viewModel };
+            _ = StartDesktopEveBackgroundAsync(viewModel);
+        }
         else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
             _ = OperatingSystem.IsAndroid()
                 ? StartAndroidWithEveAsync(singleViewPlatform)
@@ -37,16 +44,17 @@ public partial class App : Application
         base.OnFrameworkInitializationCompleted();
     }
 
-    private static async Task StartDesktopWithEveAsync(IClassicDesktopStyleApplicationLifetime desktop)
+    private static async Task StartDesktopEveBackgroundAsync(MainViewModel viewModel)
     {
-        await EveRuntime.InitializeAsync(false).ConfigureAwait(true);
-        var dataService = CreateDesktopDataService();
-        var viewModel = new MainViewModel(dataService);
-        viewModel.RefreshEveCharacters();
-        await Dispatcher.UIThread.InvokeAsync(() =>
+        try
         {
-            desktop.MainWindow = new MainWindow { DataContext = viewModel };
-        });
+            await EveRuntime.InitializeAsync(false).ConfigureAwait(false);
+            await Dispatcher.UIThread.InvokeAsync(() => viewModel.RefreshEveCharacters());
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"EVE desktop background init failed: {ex}");
+        }
     }
 
     private static async Task StartAndroidWithEveAsync(ISingleViewApplicationLifetime singleViewPlatform)
