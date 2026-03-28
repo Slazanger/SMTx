@@ -94,8 +94,95 @@ public class MainViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _eveStatus, value);
     }
 
+    private MainShellTab _selectedShellTab = MainShellTab.Home;
+    private ShellTabOption? _selectedShellTabOption;
+    private HomeSystemListTab _homeSystemListTab = HomeSystemListTab.Region;
+    private HomeIntelPanelTab _homeIntelPanelTab = HomeIntelPanelTab.Intel;
+    private int _alertCount = 2;
+    private int _notificationCount = 5;
+
+    public IReadOnlyList<ShellTabOption> ShellTabOptions { get; } =
+    [
+        new ShellTabOption(MainShellTab.Home, "Home"),
+        new ShellTabOption(MainShellTab.Search, "Search"),
+        new ShellTabOption(MainShellTab.Routes, "Routes"),
+        new ShellTabOption(MainShellTab.Bookmarks, "Bookmarks"),
+        new ShellTabOption(MainShellTab.Intel, "Intel"),
+        new ShellTabOption(MainShellTab.Settings, "Settings"),
+        new ShellTabOption(MainShellTab.Help, "Help")
+    ];
+
+    public MainShellTab SelectedShellTab
+    {
+        get => _selectedShellTab;
+        set
+        {
+            if (_selectedShellTab.Equals(value)) return;
+            this.RaiseAndSetIfChanged(ref _selectedShellTab, value);
+            _selectedShellTabOption = ShellTabOptions.First(o => o.Tab == value);
+            this.RaisePropertyChanged(nameof(SelectedShellTabOption));
+        }
+    }
+
+    public ShellTabOption? SelectedShellTabOption
+    {
+        get => _selectedShellTabOption;
+        set
+        {
+            if (ReferenceEquals(_selectedShellTabOption, value)) return;
+            this.RaiseAndSetIfChanged(ref _selectedShellTabOption, value);
+            if (value != null && _selectedShellTab != value.Tab)
+                SelectedShellTab = value.Tab;
+        }
+    }
+
+    public ICommand SelectShellTabCommand { get; }
+
+    public HomeSystemListTab SelectedHomeSystemListTab
+    {
+        get => _homeSystemListTab;
+        set => this.RaiseAndSetIfChanged(ref _homeSystemListTab, value);
+    }
+
+    public ICommand SelectHomeSystemListTabCommand { get; }
+
+    public HomeIntelPanelTab SelectedHomeIntelPanelTab
+    {
+        get => _homeIntelPanelTab;
+        set => this.RaiseAndSetIfChanged(ref _homeIntelPanelTab, value);
+    }
+
+    public ICommand SelectHomeIntelPanelTabCommand { get; }
+
+    public int AlertCount
+    {
+        get => _alertCount;
+        set => this.RaiseAndSetIfChanged(ref _alertCount, value);
+    }
+
+    public int NotificationCount
+    {
+        get => _notificationCount;
+        set => this.RaiseAndSetIfChanged(ref _notificationCount, value);
+    }
+
+    public ObservableCollection<SystemListRowVm> MockSystemList { get; } = new();
+    public ObservableCollection<string> MockIntelLines { get; } = new();
+    public ObservableCollection<string> MockActivityLines { get; } = new();
+
+    public string RouteSummaryLine { get; } = "Route: Jita → RF-K9W | 9 Jumps";
+    public string RouteEtaLine { get; } = "Estimated Time: 12 min";
+    public string RoutePathLine { get; } =
+        "Perimeter (0.9) → Nalvula (0.4) → HED-GP (0.3) → … → RF-K9W (-0.2)";
+
     public MainViewModel(IDataService? dataService = null)
     {
+        SelectShellTabCommand = ReactiveCommand.Create<MainShellTab>(tab => SelectedShellTab = tab);
+        SelectHomeSystemListTabCommand =
+            ReactiveCommand.Create<HomeSystemListTab>(tab => SelectedHomeSystemListTab = tab);
+        SelectHomeIntelPanelTabCommand =
+            ReactiveCommand.Create<HomeIntelPanelTab>(tab => SelectedHomeIntelPanelTab = tab);
+
         System.Diagnostics.Debug.WriteLine("MainViewModel constructor started");
         try
         {
@@ -109,6 +196,8 @@ public class MainViewModel : ViewModelBase
                 this.WhenAnyValue(x => x.SelectedEvePilot).Select(p => p != null));
             LogoutAllEveCommand = ReactiveCommand.CreateFromTask(LogoutAllEveAsync);
             ProbeEsiCommand = ReactiveCommand.CreateFromTask(ProbeEsiAsync);
+            SeedMockHomeLists();
+            _selectedShellTabOption = ShellTabOptions[0];
             System.Diagnostics.Debug.WriteLine("MainViewModel constructor completed");
         }
         catch (Exception ex)
@@ -599,5 +688,26 @@ public class MainViewModel : ViewModelBase
         }
         
         return results;
+    }
+
+    private void SeedMockHomeLists()
+    {
+        MockSystemList.Clear();
+        foreach (var row in new SystemListRowVm[]
+             {
+                 new("Jita", "High Sec", "#4CAF50"),
+                 new("Amarr", "High Sec", "#4CAF50"),
+                 new("HED-GP", "Low Sec", "#FF9800"),
+                 new("RF-K9W", "Null Sec", "#F44336")
+             })
+            MockSystemList.Add(row);
+
+        MockIntelLines.Clear();
+        MockIntelLines.Add("Enemy fleet spotted in RF-K9W");
+        MockIntelLines.Add("Neutral scout in HED-GP");
+
+        MockActivityLines.Clear();
+        MockActivityLines.Add("4m ago — Ship destroyed in HED-GP");
+        MockActivityLines.Add("12m ago — Gate fire in Perimeter");
     }
 }
