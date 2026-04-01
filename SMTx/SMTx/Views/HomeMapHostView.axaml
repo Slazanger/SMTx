@@ -3,5 +3,5 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              x:Class="SMTx.Views.HomeMapHostView">
-  <Grid x:Name="MapContainer" Background="#0a0d12" />
+  <Grid x:Name="MapContainer" Background="{StaticResource EveBgAppBrush}" />
 </UserControl>

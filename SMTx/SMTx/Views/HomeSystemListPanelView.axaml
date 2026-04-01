@@ -5,12 +5,12 @@
              xmlns:models="clr-namespace:SMTx.Models"
              x:Class="SMTx.Views.HomeSystemListPanelView"
              x:DataType="vm:MainViewModel">
-  <Border Background="#131820"
-          BorderBrush="#30363D"
+  <Border Background="{StaticResource EveBgElevatedBrush}"
+          BorderBrush="{StaticResource EveBorderBrush}"
           BorderThickness="0,0,1,0">
     <Grid RowDefinitions="Auto,Auto,*">
-      <Border Grid.Row="0" Background="#1a2332" Padding="10,8">
-        <TextBlock Text="System List" Foreground="#E6EDF3" FontWeight="SemiBold" />
+      <Border Grid.Row="0" Background="{StaticResource EveBgSubHeaderBrush}" Padding="10,8">
+        <TextBlock Text="System List" Foreground="{StaticResource EveTextEmphasisBrush}" FontWeight="SemiBold" />
       </Border>
       <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="8,8,8,0" Spacing="4">
         <Button Content="Region"
@@ -36,7 +36,7 @@
             <Grid ColumnDefinitions="Auto,*,Auto" Margin="4,2">
               <Border Grid.Column="0" Width="10" Height="10" CornerRadius="1"
                       Background="{Binding SecIndicatorBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
-              <TextBlock Grid.Column="1" Text="{Binding Name}" Foreground="#E6EDF3" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1" Text="{Binding Name}" Foreground="{StaticResource EveTextEmphasisBrush}" VerticalAlignment="Center" />
               <TextBlock Grid.Column="2" Text="{Binding SecLabel}" FontSize="11" VerticalAlignment="Center"
                          Foreground="{Binding SecIndicatorBrush}" />
             </Grid>

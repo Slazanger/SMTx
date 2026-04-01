@@ -4,18 +4,18 @@
              xmlns:vm="clr-namespace:SMTx.ViewModels"
              x:Class="SMTx.Views.CharactersTabPanelView"
              x:DataType="vm:MainViewModel">
-  <Panel Background="#0D1117">
+  <Panel Background="{StaticResource EveBgAppBrush}">
     <TextBlock Margin="24"
                Text="EVE linking is not available on this build."
-               Foreground="#8B949E"
+               Foreground="{StaticResource EveTextMutedBrush}"
                TextWrapping="Wrap"
                IsVisible="{Binding IsEveUnavailable}" />
 
     <DockPanel IsVisible="{Binding IsEveAvailable}" Margin="24" LastChildFill="True">
       <StackPanel DockPanel.Dock="Top" Spacing="10" Margin="0,0,0,16">
-        <TextBlock Text="Characters" FontSize="20" Foreground="#E6EDF3" FontWeight="SemiBold" />
+        <TextBlock Text="Characters" FontSize="20" Foreground="{StaticResource EveTextEmphasisBrush}" FontWeight="SemiBold" />
         <TextBlock Text="EVE Online pilots linked via ESI."
-                   Foreground="#8B949E"
+                   Foreground="{StaticResource EveTextMutedBrush}"
                    TextWrapping="Wrap" />
         <StackPanel Orientation="Horizontal" Spacing="8">
           <Button Content="Add character" Command="{Binding AddEveCharacterCommand}" Padding="10,5" />
@@ -28,7 +28,7 @@
       <TextBlock DockPanel.Dock="Bottom"
                  Margin="0,12,0,0"
                  Text="{Binding EveStatus}"
-                 Foreground="#9AD"
+                 Foreground="{StaticResource EveAccentBrush}"
                  TextWrapping="Wrap" />
 
       <Grid ColumnDefinitions="280,*,280" MinHeight="280">
@@ -47,7 +47,7 @@
                    Grid.ColumnSpan="2"
                    Margin="20,0,0,0"
                    Text="Select a pilot from the list."
-                   Foreground="#8B949E"
+                   Foreground="{StaticResource EveTextMutedBrush}"
                    VerticalAlignment="Center"
                    HorizontalAlignment="Center"
                    TextWrapping="Wrap"
@@ -55,7 +55,7 @@
 
         <Border Grid.Column="1"
                 Margin="20,0,12,0"
-                Background="#161B22"
+                Background="{StaticResource EveBgPanelBrush}"
                 CornerRadius="8"
                 Padding="16"
                 IsVisible="{Binding HasEvePilotSelection}">
@@ -64,11 +64,11 @@
                         DataContext="{Binding Detail}"
                         Spacing="10">
               <TextBlock Text="{Binding LoadError}"
-                         Foreground="#F85149"
+                         Foreground="{StaticResource EveErrorBrush}"
                          TextWrapping="Wrap"
                          IsVisible="{Binding HasLoadError}" />
               <TextBlock Text="Loading character details…"
-                         Foreground="#8B949E"
+                         Foreground="{StaticResource EveTextMutedBrush}"
                          IsVisible="{Binding IsLoading}" />
               <StackPanel Spacing="12" IsVisible="{Binding IsDetailReady}">
                 <StackPanel Orientation="Horizontal" Spacing="16">
@@ -80,8 +80,8 @@
                     <TextBlock Text="{Binding CharacterName}"
                                FontSize="18"
                                FontWeight="SemiBold"
-                               Foreground="#E6EDF3" />
-                    <TextBlock Foreground="#8B949E">
+                               Foreground="{StaticResource EveTextEmphasisBrush}" />
+                    <TextBlock Foreground="{StaticResource EveTextMutedBrush}">
                       <Run Text="Character ID " />
                       <Run Text="{Binding CharacterIdText}" />
                     </TextBlock>
@@ -91,14 +91,14 @@
                 <StackPanel Spacing="6" IsVisible="{Binding HasCorporation}">
                   <TextBlock Text="Corporation"
                              FontWeight="SemiBold"
-                             Foreground="#E6EDF3" />
+                             Foreground="{StaticResource EveTextEmphasisBrush}" />
                   <StackPanel Orientation="Horizontal" Spacing="12">
                     <Image Width="48"
                            Height="48"
                            Source="{Binding CorporationLogo}"
                            Stretch="Uniform" />
                     <TextBlock Text="{Binding CorporationLine}"
-                               Foreground="#C9D1D9"
+                               Foreground="{StaticResource EveTextEmphasisBrush}"
                                VerticalAlignment="Center"
                                TextWrapping="Wrap" />
                   </StackPanel>
@@ -107,14 +107,14 @@
                 <StackPanel Spacing="6" IsVisible="{Binding HasAlliance}">
                   <TextBlock Text="Alliance"
                              FontWeight="SemiBold"
-                             Foreground="#E6EDF3" />
+                             Foreground="{StaticResource EveTextEmphasisBrush}" />
                   <StackPanel Orientation="Horizontal" Spacing="12">
                     <Image Width="48"
                            Height="48"
                            Source="{Binding AllianceLogo}"
                            Stretch="Uniform" />
                     <TextBlock Text="{Binding AllianceLine}"
-                               Foreground="#C9D1D9"
+                               Foreground="{StaticResource EveTextEmphasisBrush}"
                                VerticalAlignment="Center"
                                TextWrapping="Wrap" />
                   </StackPanel>
@@ -123,18 +123,18 @@
                 <StackPanel Spacing="6" IsVisible="{Binding HasLocation}">
                   <TextBlock Text="Location"
                              FontWeight="SemiBold"
-                             Foreground="#E6EDF3" />
+                             Foreground="{StaticResource EveTextEmphasisBrush}" />
                   <TextBlock Text="{Binding LocationLine}"
-                             Foreground="#C9D1D9"
+                             Foreground="{StaticResource EveTextEmphasisBrush}"
                              TextWrapping="Wrap" />
                 </StackPanel>
 
                 <StackPanel Spacing="6" IsVisible="{Binding HasShip}">
                   <TextBlock Text="Ship"
                              FontWeight="SemiBold"
-                             Foreground="#E6EDF3" />
+                             Foreground="{StaticResource EveTextEmphasisBrush}" />
                   <TextBlock Text="{Binding ShipLine}"
-                             Foreground="#C9D1D9"
+                             Foreground="{StaticResource EveTextEmphasisBrush}"
                              TextWrapping="Wrap" />
                 </StackPanel>
               </StackPanel>
@@ -143,7 +143,7 @@
         </Border>
 
         <Border Grid.Column="2"
-                Background="#161B22"
+                Background="{StaticResource EveBgPanelBrush}"
                 CornerRadius="8"
                 Padding="16"
                 IsVisible="{Binding HasEvePilotSelection}">
@@ -154,16 +154,16 @@
               <TextBlock Text="Clones"
                          FontSize="16"
                          FontWeight="SemiBold"
-                         Foreground="#E6EDF3" />
+                         Foreground="{StaticResource EveTextEmphasisBrush}" />
               <TextBlock Text="Loading clones…"
-                         Foreground="#8B949E"
+                         Foreground="{StaticResource EveTextMutedBrush}"
                          IsVisible="{Binding IsLoading}" />
               <TextBlock Text="{Binding StatusMessage}"
-                         Foreground="#F85149"
+                         Foreground="{StaticResource EveErrorBrush}"
                          TextWrapping="Wrap"
                          IsVisible="{Binding HasStatusMessage}" />
               <TextBlock Text="No clone data returned."
-                         Foreground="#8B949E"
+                         Foreground="{StaticResource EveTextMutedBrush}"
                          TextWrapping="Wrap"
                          IsVisible="{Binding ShowEmptyHint}" />
               <ItemsControl ItemsSource="{Binding Rows}">
@@ -171,24 +171,24 @@
                   <DataTemplate DataType="vm:EveCloneRowViewModel">
                     <Border Margin="0,0,0,12"
                             Padding="0,0,0,12"
-                            BorderBrush="#30363D"
+                            BorderBrush="{StaticResource EveBorderBrush}"
                             BorderThickness="0,0,0,1">
                       <StackPanel Spacing="6">
                         <TextBlock Text="{Binding Title}"
                                    FontWeight="SemiBold"
-                                   Foreground="#E6EDF3"
+                                   Foreground="{StaticResource EveTextEmphasisBrush}"
                                    TextWrapping="Wrap" />
-                        <TextBlock Foreground="#8B949E"
+                        <TextBlock Foreground="{StaticResource EveTextMutedBrush}"
                                    FontSize="12"
                                    Text="Location" />
                         <TextBlock Text="{Binding LocationText}"
-                                   Foreground="#C9D1D9"
+                                   Foreground="{StaticResource EveTextEmphasisBrush}"
                                    TextWrapping="Wrap" />
-                        <TextBlock Foreground="#8B949E"
+                        <TextBlock Foreground="{StaticResource EveTextMutedBrush}"
                                    FontSize="12"
                                    Text="Implants" />
                         <TextBlock Text="{Binding ImplantsText}"
-                                   Foreground="#C9D1D9"
+                                   Foreground="{StaticResource EveTextEmphasisBrush}"
                                    TextWrapping="Wrap" />
                       </StackPanel>
                     </Border>

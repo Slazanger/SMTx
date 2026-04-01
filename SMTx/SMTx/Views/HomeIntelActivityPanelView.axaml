@@ -5,12 +5,12 @@
              xmlns:models="clr-namespace:SMTx.Models"
              x:Class="SMTx.Views.HomeIntelActivityPanelView"
              x:DataType="vm:MainViewModel">
-  <Border Background="#131820"
-          BorderBrush="#30363D"
+  <Border Background="{StaticResource EveBgElevatedBrush}"
+          BorderBrush="{StaticResource EveBorderBrush}"
           BorderThickness="1,0,0,0">
     <Grid RowDefinitions="2*,*">
       <Grid Grid.Row="0" RowDefinitions="Auto,*">
-        <Border Grid.Row="0" Background="#1a2332" Padding="10,8">
+        <Border Grid.Row="0" Background="{StaticResource EveBgSubHeaderBrush}" Padding="10,8">
           <StackPanel Orientation="Horizontal" Spacing="4">
             <Button Content="Intel"
                     Padding="8,4"
@@ -31,8 +31,8 @@
           <ListBox.ItemTemplate>
             <DataTemplate>
               <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4">
-                <Border Width="3" Height="16" Background="#58A6FF" CornerRadius="1" VerticalAlignment="Center" />
-                <TextBlock Text="{Binding}" TextWrapping="Wrap" Foreground="#C9D1D9" />
+                <Border Width="3" Height="16" Background="{StaticResource EveIntelAccentBrush}" CornerRadius="1" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding}" TextWrapping="Wrap" Foreground="{StaticResource EveTextEmphasisBrush}" />
               </StackPanel>
             </DataTemplate>
           </ListBox.ItemTemplate>
@@ -40,12 +40,12 @@
         <TextBlock Grid.Row="1"
                    Text="No log entries."
                    Margin="12"
-                   Foreground="#8B949E"
+                   Foreground="{StaticResource EveTextMutedBrush}"
                    IsVisible="{Binding IsHomeIntelPanelLog}" />
       </Grid>
-      <Border Grid.Row="1" BorderBrush="#30363D" BorderThickness="0,1,0,0" Padding="0,8,0,0">
+      <Border Grid.Row="1" BorderBrush="{StaticResource EveBorderBrush}" BorderThickness="0,1,0,0" Padding="0,8,0,0">
         <Grid RowDefinitions="Auto,*">
-          <TextBlock Text="Recent Activity" Foreground="#E6EDF3" FontWeight="SemiBold" Margin="10,0,10,6" />
+          <TextBlock Text="Recent Activity" Foreground="{StaticResource EveTextEmphasisBrush}" FontWeight="SemiBold" Margin="10,0,10,6" />
           <ListBox Grid.Row="1"
                    ItemsSource="{Binding MockActivityLines}"
                    Background="Transparent"
@@ -54,8 +54,8 @@
             <ListBox.ItemTemplate>
               <DataTemplate>
                 <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4">
-                  <Border Width="8" Height="8" Background="#F85149" CornerRadius="1" VerticalAlignment="Center" />
-                  <TextBlock Text="{Binding}" TextWrapping="Wrap" Foreground="#C9D1D9" />
+                  <Border Width="8" Height="8" Background="{StaticResource EveErrorBrush}" CornerRadius="1" VerticalAlignment="Center" />
+                  <TextBlock Text="{Binding}" TextWrapping="Wrap" Foreground="{StaticResource EveTextEmphasisBrush}" />
                 </StackPanel>
               </DataTemplate>
             </ListBox.ItemTemplate>

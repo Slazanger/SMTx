@@ -1,42 +1,41 @@
-﻿/* HTML styles for the splash screen */
+/* HTML styles for the splash screen */
 .avalonia-splash {
     position: absolute;
     height: 100%;
     width: 100%;
-    background: white;
-    font-family: 'Outfit', sans-serif;
+    background: #05080a;
+    font-family: 'Rajdhani', 'Segoe UI', sans-serif;
     justify-content: center;
     align-items: center;
     display: flex;
     pointer-events: none;
 }
 
-/* Light theme styles */
 @media (prefers-color-scheme: light) {
     .avalonia-splash {
-        background: white;
+        background: #05080a;
     }
 
     .avalonia-splash h2 {
-        color: #1b2a4e;
+        color: #ced8de;
     }
 
     .avalonia-splash a {
-        color: #0D6EFD;
+        color: #9ebfc9;
     }
 }
 
 @media (prefers-color-scheme: dark) {
     .avalonia-splash {
-        background: #1b2a4e;
+        background: #05080a;
     }
 
     .avalonia-splash h2 {
-        color: white;
+        color: #ced8de;
     }
 
     .avalonia-splash a {
-        color: white;
+        color: #9ebfc9;
     }
 }
 

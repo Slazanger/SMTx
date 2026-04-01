@@ -1,0 +1,18 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <SolidColorBrush x:Key="EveBgAppBrush" Color="#05080a" />
+  <SolidColorBrush x:Key="EveBgElevatedBrush" Color="#0c1215" />
+  <SolidColorBrush x:Key="EveBgPanelBrush" Color="#161e22" />
+  <SolidColorBrush x:Key="EveBgSubHeaderBrush" Color="#1c2e36" />
+  <SolidColorBrush x:Key="EveSelectionBrush" Color="#1c2e36" />
+  <SolidColorBrush x:Key="EveHoverBrush" Color="#243840" />
+  <SolidColorBrush x:Key="EveBorderBrush" Color="#3d5a63" />
+  <SolidColorBrush x:Key="EveTextMutedBrush" Color="#b0b8bc" />
+  <SolidColorBrush x:Key="EveTextEmphasisBrush" Color="#ced8de" />
+  <SolidColorBrush x:Key="EveAccentBrush" Color="#9ebfc9" />
+  <SolidColorBrush x:Key="EveWarningBrush" Color="#d4a017" />
+  <SolidColorBrush x:Key="EveErrorBrush" Color="#F85149" />
+  <SolidColorBrush x:Key="EveIntelAccentBrush" Color="#5a8a96" />
+  <SolidColorBrush x:Key="EveNotificationBrush" Color="#5a8a96" />
+  <SolidColorBrush x:Key="EveTextFaintBrush" Color="#6e7a80" />
+</ResourceDictionary>

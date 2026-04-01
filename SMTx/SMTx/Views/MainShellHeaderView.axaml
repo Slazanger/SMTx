@@ -5,8 +5,8 @@
              xmlns:vm="clr-namespace:SMTx.ViewModels"
              x:Class="SMTx.Views.MainShellHeaderView"
              x:DataType="vm:MainViewModel">
-  <Border Background="#161B22"
-          BorderBrush="#30363D"
+  <Border Background="{StaticResource EveBgElevatedBrush}"
+          BorderBrush="{StaticResource EveBorderBrush}"
           BorderThickness="0,0,0,1"
           Padding="12,8">
     <Grid ColumnDefinitions="Auto,*,Auto">
@@ -15,7 +15,7 @@
                  VerticalAlignment="Center"
                  FontSize="18"
                  FontWeight="SemiBold"
-                 Foreground="#E6EDF3"
+                 Foreground="{StaticResource EveTextEmphasisBrush}"
                  Margin="0,0,24,0" />
       <ListBox Grid.Column="1"
                ItemsSource="{Binding ShellTabOptions}"
@@ -34,7 +34,7 @@
           <DataTemplate DataType="vm:ShellTabOption">
             <TextBlock Text="{Binding DisplayName}"
                        VerticalAlignment="Center"
-                       Foreground="#C9D1D9" />
+                       Foreground="{StaticResource EveTextMutedBrush}" />
           </DataTemplate>
         </ListBox.ItemTemplate>
         <ListBox.Styles>
@@ -45,13 +45,13 @@
             <Setter Property="CornerRadius" Value="4" />
           </Style>
           <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="#1F3A5F" />
+            <Setter Property="Background" Value="{StaticResource EveSelectionBrush}" />
           </Style>
           <Style Selector="ListBoxItem:selected TextBlock">
-            <Setter Property="Foreground" Value="#79B8FF" />
+            <Setter Property="Foreground" Value="{StaticResource EveAccentBrush}" />
           </Style>
           <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="#21262D" />
+            <Setter Property="Background" Value="{StaticResource EveHoverBrush}" />
           </Style>
         </ListBox.Styles>
       </ListBox>
@@ -61,15 +61,15 @@
                   VerticalAlignment="Center"
                   Margin="16,0,0,0">
         <StackPanel Orientation="Horizontal" Spacing="6">
-          <Border Width="10" Height="10" Background="#FF9800" CornerRadius="1" VerticalAlignment="Center" />
-          <TextBlock VerticalAlignment="Center" Foreground="#C9D1D9" FontSize="12">
+          <Border Width="10" Height="10" Background="{StaticResource EveWarningBrush}" CornerRadius="1" VerticalAlignment="Center" />
+          <TextBlock VerticalAlignment="Center" Foreground="{StaticResource EveTextMutedBrush}" FontSize="12">
             <Run Text="Alerts: " />
             <Run Text="{Binding AlertCount}" />
           </TextBlock>
         </StackPanel>
         <StackPanel Orientation="Horizontal" Spacing="6">
-          <Border Width="10" Height="10" Background="#58A6FF" CornerRadius="1" VerticalAlignment="Center" />
-          <TextBlock VerticalAlignment="Center" Foreground="#C9D1D9" FontSize="12">
+          <Border Width="10" Height="10" Background="{StaticResource EveNotificationBrush}" CornerRadius="1" VerticalAlignment="Center" />
+          <TextBlock VerticalAlignment="Center" Foreground="{StaticResource EveTextMutedBrush}" FontSize="12">
             <Run Text="Notifications: " />
             <Run Text="{Binding NotificationCount}" />
           </TextBlock>

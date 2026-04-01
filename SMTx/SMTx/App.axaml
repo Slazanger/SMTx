@@ -1,14 +1,55 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:styling="using:Avalonia.Markup.Xaml.Styling"
              xmlns:converters="clr-namespace:SMTx.Converters"
              x:Class="SMTx.App"
              RequestedThemeVariant="Dark">
 
     <Application.Resources>
-        <converters:EnumEqualsConverter x:Key="EnumEquals" />
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <styling:MergeResourceInclude Source="avares://SMTx/Themes/EveUiResources.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <converters:EnumEqualsConverter x:Key="EnumEquals" />
+        </ResourceDictionary>
     </Application.Resources>
 
     <Application.Styles>
         <FluentTheme />
+        <Style Selector="TextBlock">
+            <Setter Property="FontFamily" Value="avares://SMTx/Assets/Fonts/Rajdhani-Regular.ttf#Rajdhani, Inter" />
+        </Style>
+        <Style Selector="TextBlock[FontWeight=SemiBold]">
+            <Setter Property="FontFamily" Value="avares://SMTx/Assets/Fonts/Rajdhani-SemiBold.ttf#Rajdhani, Inter" />
+        </Style>
+        <Style Selector="TextBlock[FontWeight=Bold]">
+            <Setter Property="FontFamily" Value="avares://SMTx/Assets/Fonts/Rajdhani-SemiBold.ttf#Rajdhani, Inter" />
+        </Style>
+        <Style Selector="Button">
+            <Setter Property="Background" Value="{StaticResource EveBgPanelBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource EveTextEmphasisBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource EveBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontFamily" Value="avares://SMTx/Assets/Fonts/Rajdhani-Regular.ttf#Rajdhani, Inter" />
+        </Style>
+        <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource EveHoverBrush}" />
+        </Style>
+        <Style Selector="Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource EveSelectionBrush}" />
+        </Style>
+        <Style Selector="Button:disabled">
+            <Setter Property="Foreground" Value="{StaticResource EveTextMutedBrush}" />
+        </Style>
+        <Style Selector="Slider">
+            <Setter Property="Foreground" Value="{StaticResource EveAccentBrush}" />
+        </Style>
+        <Style Selector="TextBox">
+            <Setter Property="Background" Value="{StaticResource EveBgPanelBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource EveTextEmphasisBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource EveBorderBrush}" />
+            <Setter Property="CaretBrush" Value="{StaticResource EveTextEmphasisBrush}" />
+            <Setter Property="FontFamily" Value="avares://SMTx/Assets/Fonts/Rajdhani-Regular.ttf#Rajdhani, Inter" />
+        </Style>
     </Application.Styles>
 </Application>
